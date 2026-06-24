@@ -15,8 +15,7 @@
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      /* Fondo blanco limpio */
-      background-color: #ffffff; 
+      background-color: #ffffff;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -26,16 +25,17 @@
       overflow-x: hidden;
     }
 
-    /* --- MARCA DE AGUA --- */
+    /* --- MARCA DE AGUA (CUBRE TODA LA PANTALLA) --- */
     .watermark {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 80%;
-      max-width: 600px;
-      opacity: 0.06; /* Opacidad muy baja para que sea sutil. Ajusta si es necesario */
-      pointer-events: none; /* Para que no bloquee los clics */
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover; /* Hace que la imagen cubra toda la pantalla */
+      opacity: 0.05; /* Opacidad muy baja para que sea sutil */
+      pointer-events: none;
       z-index: 0;
     }
 
@@ -44,32 +44,31 @@
       width: 100%;
       max-width: 420px;
       position: relative;
-      z-index: 1; /* Se pone por encima de la marca de agua */
+      z-index: 1;
     }
 
     .login-box {
       background: #ffffff;
       border-radius: 12px;
       padding: 35px 30px;
-      /* Sombra suave para que resalte sobre el fondo blanco */
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); 
-      border-top: 5px solid #6b0f0f; /* Detalle vinotinto institucional */
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      border-top: 5px solid #6b0f0f;
       text-align: center;
     }
 
-    /* --- LOGO SUPERIOR --- */
+    /* --- LOGO SUPERIOR (MÁS GRANDE) --- */
     .logo-container {
       margin-bottom: 15px;
     }
 
     .logo {
-      max-width: 90px;
+      max-width: 140px; /* Más grande que antes (era 90px) */
       height: auto;
     }
 
     /* --- TÍTULOS --- */
     h1 {
-      color: #4a0404; /* Vinotinto oscuro */
+      color: #4a0404;
       font-size: 22px;
       font-weight: 700;
       margin-bottom: 5px;
@@ -77,13 +76,12 @@
     }
 
     .subtitle {
-      color: #6b0f0f;
+      color: #888888; /* Gris más claro */
       font-size: 13px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 1.5px;
       margin-bottom: 25px;
-      opacity: 0.8;
     }
 
     /* --- FORMULARIO --- */
@@ -167,6 +165,27 @@
       display: block;
     }
 
+    /* --- FOOTER (DEBAJO DEL BOTÓN) --- */
+    .footer-info {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+    }
+
+    .footer-info p {
+      font-size: 12px;
+      color: #666666;
+      margin: 5px 0;
+      line-height: 1.4;
+    }
+
+    .footer-info .copyright {
+      font-size: 11px;
+      color: #999999;
+      margin-top: 10px;
+    }
+
     /* --- RESPONSIVE PARA CELULARES --- */
     @media (max-width: 480px) {
       body {
@@ -186,35 +205,31 @@
       }
 
       .logo {
-        max-width: 75px;
-      }
-      
-      .watermark {
-        width: 90%; /* En celulares la marca de agua ocupa un poco más de ancho */
+        max-width: 120px; /* Ajustado para móviles */
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Marca de agua de fondo -->
+  <!-- Marca de agua que cubre toda la pantalla -->
   <img src="img/logo2.png" alt="Marca de agua" class="watermark">
 
   <div class="login-container">
     <div class="login-box">
       
-      <!-- Logo principal encima del título -->
+      <!-- Logo principal más grande -->
       <div class="logo-container">
         <img src="img/logo1.png" alt="Logo ICAP" class="logo">
       </div>
       
-      <!-- Títulos actualizados -->
+      <!-- Títulos -->
       <h1>Programa de Supervisión Intensiva</h1>
       <p class="subtitle">ICAP Acceso Restringido</p>
       
       <form id="loginForm">
         <div class="form-group">
-          <label for="cedula">Número de Cédula</label>
+          <label for="cedula">Ingrese Número de Cédula</label>
           <input 
             type="text" 
             id="cedula" 
@@ -230,6 +245,12 @@
         <button type="submit" class="btn-login" id="btnIngresar">Ingresar</button>
         
         <div id="mensaje" class="mensaje"></div>
+        
+        <!-- Footer con información institucional -->
+        <div class="footer-info">
+          <p><strong>ICAP del Cuerpo de Policía Nacional Bolivariana</strong></p>
+          <p class="copyright">© Desarrollado por OTIC ZULIA</p>
+        </div>
       </form>
     </div>
   </div>
