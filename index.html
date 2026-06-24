@@ -4,15 +4,177 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Acceso</title>
-  <link rel="stylesheet" href="styles.css">
+  
+  <style>
+    /* --- ESTILOS CSS INTEGRADOS --- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      /* Color vinotinto oscuro institucional */
+      background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 50%, #3d0000 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-box {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 40px 30px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+      border-top: 5px solid #8b0000; /* Detalle vinotinto */
+    }
+
+    .logo-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      max-width: 100px;
+      height: auto;
+      border-radius: 50%; /* Opcional: si quieres el logo circular */
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: #4a0404;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 22px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      color: #4a0404;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background-color: #fafafa;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #8b0000;
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: #6b0f0f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-login:hover {
+      background: #8b0000;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(139, 0, 0, 0.3);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .btn-login:disabled {
+      background: #a0a0a0;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .mensaje {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .mensaje.error {
+      background: #ffe6e6;
+      color: #cc0000;
+      border: 1px solid #ffcccc;
+      display: block;
+    }
+
+    .mensaje.exito {
+      background: #e6ffe6;
+      color: #008000;
+      border: 1px solid #ccffcc;
+      display: block;
+    }
+
+    /* --- RESPONSIVE PARA CELULARES --- */
+    @media (max-width: 480px) {
+      body {
+        padding: 15px;
+      }
+      
+      .login-box {
+        padding: 30px 20px;
+      }
+      
+      h1 {
+        font-size: 18px;
+      }
+
+      .logo {
+        max-width: 80px;
+      }
+    }
+  </style>
 </head>
 <body>
+
   <div class="login-container">
     <div class="login-box">
       <div class="logo-container">
-        <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+        <!-- Asegúrate de subir tu logo a la misma carpeta que este HTML -->
+        <img src="logo.png" alt="Logo Institucional" class="logo" onerror="this.style.display='none'">
       </div>
+      
       <h1>Sistema Institucional</h1>
+      
       <form id="loginForm">
         <div class="form-group">
           <label for="cedula">Número de Cédula</label>
@@ -20,18 +182,26 @@
             type="text" 
             id="cedula" 
             name="cedula" 
-            placeholder="Ingrese su cédula"
+            placeholder="Ingrese su número de cédula"
+            inputmode="numeric"
+            pattern="[0-9]*"
             required
             autocomplete="off"
           >
         </div>
-        <button type="submit" class="btn-login">Ingresar</button>
+        
+        <button type="submit" class="btn-login" id="btnIngresar">Ingresar</button>
+        
         <div id="mensaje" class="mensaje"></div>
       </form>
     </div>
   </div>
   
+  <!-- Librería de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Tu archivo JS separado -->
   <script src="js/index.js"></script>
+
 </body>
 </html>
