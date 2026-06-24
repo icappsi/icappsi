@@ -1,12 +1,8 @@
-// Configuración de Supabase
-const SUPABASE_URL = 'TU_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+// Los elementos del DOM
 const loginForm = document.getElementById('loginForm');
 const cedulaInput = document.getElementById('cedula');
 const mensajeDiv = document.getElementById('mensaje');
+const btnIngresar = document.getElementById('btnIngresar');
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -19,13 +15,22 @@ loginForm.addEventListener('submit', async (e) => {
   }
   
   try {
-    mostrarMensaje('Verificando...', 'exito');
+    // Deshabilitar botón mientras verifica
+    btnIngresar.disabled = true;
+    btnIngresar.textContent = 'Verificando...';
     
-    const { data, error } = await supabase
+    mostrarMensaje('Verificando credenciales...', 'exito');
+    
+    // Consultar directamente la tabla de usuarios (sin usar Auth)
+    const { data, error } = await supabaseClient
       .from('usuarios')
       .select('*')
       .eq('cedula', cedula)
       .single();
+    
+    // Rehabilitar botón
+    btnIngresar.disabled = false;
+    btnIngresar.textContent = 'Ingresar';
     
     if (error || !data) {
       mostrarMensaje('Cédula no encontrada en el sistema', 'error');
@@ -53,6 +58,10 @@ loginForm.addEventListener('submit', async (e) => {
   } catch (err) {
     console.error('Error:', err);
     mostrarMensaje('Error al conectar con el servidor', 'error');
+    
+    // Rehabilitar botón en caso de error
+    btnIngresar.disabled = false;
+    btnIngresar.textContent = 'Ingresar';
   }
 });
 
