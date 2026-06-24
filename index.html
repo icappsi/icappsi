@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Acceso</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <div class="logo-container">
+        <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+      </div>
+      <h1>Sistema Institucional</h1>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="cedula">Número de Cédula</label>
+          <input 
+            type="text" 
+            id="cedula" 
+            name="cedula" 
+            placeholder="Ingrese su cédula"
+            required
+            autocomplete="off"
+          >
+        </div>
+        <button type="submit" class="btn-login">Ingresar</button>
+        <div id="mensaje" class="mensaje"></div>
+      </form>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/index.js"></script>
+</body>
+</html>
