@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Acceso</title>
+  <title>ICAP - Acceso Restringido</title>
   
   <style>
     /* --- ESTILOS CSS INTEGRADOS --- */
@@ -15,52 +15,81 @@
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      /* Color vinotinto oscuro institucional */
-      background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 50%, #3d0000 100%);
+      /* Fondo blanco limpio */
+      background-color: #ffffff; 
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 20px;
+      position: relative;
+      overflow-x: hidden;
     }
 
+    /* --- MARCA DE AGUA --- */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      max-width: 600px;
+      opacity: 0.06; /* Opacidad muy baja para que sea sutil. Ajusta si es necesario */
+      pointer-events: none; /* Para que no bloquee los clics */
+      z-index: 0;
+    }
+
+    /* --- CONTENEDOR DEL LOGIN --- */
     .login-container {
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
+      position: relative;
+      z-index: 1; /* Se pone por encima de la marca de agua */
     }
 
     .login-box {
       background: #ffffff;
       border-radius: 12px;
-      padding: 40px 30px;
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-      border-top: 5px solid #8b0000; /* Detalle vinotinto */
+      padding: 35px 30px;
+      /* Sombra suave para que resalte sobre el fondo blanco */
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); 
+      border-top: 5px solid #6b0f0f; /* Detalle vinotinto institucional */
+      text-align: center;
     }
 
+    /* --- LOGO SUPERIOR --- */
     .logo-container {
-      text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
 
     .logo {
-      max-width: 100px;
+      max-width: 90px;
       height: auto;
-      border-radius: 50%; /* Opcional: si quieres el logo circular */
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
+    /* --- TÍTULOS --- */
     h1 {
-      color: #4a0404;
-      text-align: center;
-      margin-bottom: 30px;
+      color: #4a0404; /* Vinotinto oscuro */
       font-size: 22px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      margin-bottom: 5px;
+      line-height: 1.2;
     }
 
+    .subtitle {
+      color: #6b0f0f;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 25px;
+      opacity: 0.8;
+    }
+
+    /* --- FORMULARIO --- */
     .form-group {
       margin-bottom: 20px;
+      text-align: left;
     }
 
     label {
@@ -106,20 +135,14 @@
     .btn-login:hover {
       background: #8b0000;
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(139, 0, 0, 0.3);
+      box-shadow: 0 5px 15px rgba(139, 0, 0, 0.2);
     }
 
     .btn-login:active {
       transform: translateY(0);
     }
 
-    .btn-login:disabled {
-      background: #a0a0a0;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
+    /* --- MENSAJES --- */
     .mensaje {
       margin-top: 15px;
       padding: 12px;
@@ -155,25 +178,39 @@
       }
       
       h1 {
-        font-size: 18px;
+        font-size: 19px;
+      }
+
+      .subtitle {
+        font-size: 11px;
       }
 
       .logo {
-        max-width: 80px;
+        max-width: 75px;
+      }
+      
+      .watermark {
+        width: 90%; /* En celulares la marca de agua ocupa un poco más de ancho */
       }
     }
   </style>
 </head>
 <body>
 
+  <!-- Marca de agua de fondo -->
+  <img src="img/logo2.png" alt="Marca de agua" class="watermark">
+
   <div class="login-container">
     <div class="login-box">
+      
+      <!-- Logo principal encima del título -->
       <div class="logo-container">
-        <!-- Asegúrate de subir tu logo a la misma carpeta que este HTML -->
-        <img src="logo.png" alt="Logo Institucional" class="logo" onerror="this.style.display='none'">
+        <img src="img/logo1.png" alt="Logo ICAP" class="logo">
       </div>
       
-      <h1>Sistema Institucional</h1>
+      <!-- Títulos actualizados -->
+      <h1>Programa de Supervisión Intensiva</h1>
+      <p class="subtitle">ICAP Acceso Restringido</p>
       
       <form id="loginForm">
         <div class="form-group">
