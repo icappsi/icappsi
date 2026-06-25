@@ -3,6 +3,7 @@ document.getElementById('materialTipo').addEventListener('change', function() {
   const tipo = this.value;
   const archivoField = document.getElementById('archivoField');
   const contenidoField = document.getElementById('contenidoField');
+  const archivoInput = document.getElementById('materialArchivo');
   
   if (tipo === 'blog') {
     archivoField.style.display = 'none';
@@ -10,6 +11,15 @@ document.getElementById('materialTipo').addEventListener('change', function() {
   } else {
     archivoField.style.display = 'block';
     contenidoField.style.display = 'none';
+    
+    // Configurar accept según el tipo
+    if (tipo === 'imagen') {
+      archivoInput.accept = 'image/*';
+    } else if (tipo === 'video') {
+      archivoInput.accept = 'video/*';
+    } else {
+      archivoInput.accept = '*/*';
+    }
   }
 });
 
@@ -17,7 +27,7 @@ document.getElementById('materialTipo').addEventListener('change', function() {
 document.getElementById('btnSubirMaterial').addEventListener('click', async () => {
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   if (!usuario || usuario.nivel_acceso !== 'administrador') {
-    alert('Solo los administradores pueden subir material');
+    await showAlert('Acceso Denegado', 'Solo los administradores pueden subir material', 'error');
     return;
   }
   
@@ -28,17 +38,17 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
   const contenido = document.getElementById('materialContenido').value.trim();
   
   if (!titulo) {
-    alert('Por favor ingresa un título');
+    await showAlert('Campo Requerido', 'Por favor ingresa un título', 'warning');
     return;
   }
   
-  if ((tipo === 'documento' || tipo === 'video') && !archivo) {
-    alert('Por favor selecciona un archivo');
+  if ((tipo === 'documento' || tipo === 'video' || tipo === 'imagen') && !archivo) {
+    await showAlert('Campo Requerido', 'Por favor selecciona un archivo', 'warning');
     return;
   }
   
   if (tipo === 'blog' && !contenido) {
-    alert('Por favor ingresa el contenido del blog');
+    await showAlert('Campo Requerido', 'Por favor ingresa el contenido del blog', 'warning');
     return;
   }
   
@@ -49,12 +59,11 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
   try {
     let archivoUrl = null;
     
-    // Si es documento o video, subir el archivo primero
-    if (tipo === 'documento' || tipo === 'video') {
+    // Si es documento, video o imagen, subir el archivo primero
+    if (tipo === 'documento' || tipo === 'video' || tipo === 'imagen') {
       const fileName = `${Date.now()}_${archivo.name}`;
       
-      // Mostrar progreso de subida
-      btnSubir.textContent = 'Subiendo archivo... 0%';
+      btnSubir.textContent = 'Subiendo archivo...';
       
       const { data: uploadData, error: uploadError } = await supabaseClient.storage
         .from('material-apoyo')
@@ -72,10 +81,8 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
       btnSubir.textContent = '✅ Archivo subido correctamente';
       btnSubir.style.background = '#28a745';
       
-      // Esperar un momento para que el usuario vea la confirmación
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Obtener URL pública del archivo
       const { data: urlData } = supabaseClient.storage
         .from('material-apoyo')
         .getPublicUrl(fileName);
@@ -110,10 +117,10 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     document.getElementById('materialArchivo').value = '';
     document.getElementById('materialContenido').value = '';
     
-    // Recargar la lista después de 1.5 segundos
-    setTimeout(() => {
+    // Mostrar modal de éxito
+    setTimeout(async () => {
+      await showAlert('¡Éxito!', 'El material se ha publicado correctamente', 'success');
       cargarMateriales();
-      // Resetear botón
       btnSubir.disabled = false;
       btnSubir.textContent = 'Publicar Material';
       btnSubir.style.background = '#6b0f0f';
@@ -121,12 +128,17 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     
   } catch (error) {
     console.error('Error:', error);
-    alert('Error al publicar el material: ' + error.message);
+    await showAlert('Error', 'Error al publicar el material: ' + error.message, 'error');
     btnSubir.disabled = false;
     btnSubir.textContent = 'Publicar Material';
     btnSubir.style.background = '#6b0f0f';
   }
 });
+
+// Variables de paginación
+let paginaActual = 1;
+const materialesPorPagina = 10;
+let todosLosMateriales = [];
 
 // Cargar y mostrar materiales
 async function cargarMateriales() {
@@ -146,25 +158,47 @@ async function cargarMateriales() {
       return;
     }
     
-    materialList.innerHTML = '';
-    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-    const esAdmin = usuario && usuario.nivel_acceso === 'administrador';
+    todosLosMateriales = materiales;
+    paginaActual = 1;
+    renderizarMaterialesPagina();
     
-    materiales.forEach((material, index) => {
-      const card = document.createElement('div');
-      card.style.cssText = 'background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);';
-      
-      let icon = '📄';
-      let tipoTexto = 'Documento';
-      if (material.tipo === 'video') {
-        icon = '🎥';
-        tipoTexto = 'Video';
-      } else if (material.tipo === 'blog') {
-        icon = '📝';
-        tipoTexto = 'Blog';
-      }
-      
-        let contentHTML = '';
+  } catch (error) {
+    console.error('Error cargando materiales:', error);
+    materialList.innerHTML = '<p style="text-align: center; color: #c33; padding: 40px;">Error al cargar los materiales.</p>';
+  }
+}
+
+// Función para renderizar una página específica de materiales
+function renderizarMaterialesPagina() {
+  const materialList = document.getElementById('materialList');
+  const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+  const esAdmin = usuario && usuario.nivel_acceso === 'administrador';
+  
+  const inicio = (paginaActual - 1) * materialesPorPagina;
+  const fin = inicio + materialesPorPagina;
+  const materialesPagina = todosLosMateriales.slice(inicio, fin);
+  const totalPaginas = Math.ceil(todosLosMateriales.length / materialesPorPagina);
+  
+  materialList.innerHTML = '';
+  
+  materialesPagina.forEach((material, index) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);';
+    
+    let icon = '📄';
+    let tipoTexto = 'Documento';
+    if (material.tipo === 'video') {
+      icon = '🎥';
+      tipoTexto = 'Video';
+    } else if (material.tipo === 'blog') {
+      icon = '📝';
+      tipoTexto = 'Blog';
+    } else if (material.tipo === 'imagen') {
+      icon = '🖼️';
+      tipoTexto = 'Imagen';
+    }
+    
+    let contentHTML = '';
     
     if (material.tipo === 'blog') {
       const contenidoCompleto = material.contenido || '';
@@ -185,14 +219,12 @@ async function cargarMateriales() {
         </div>
       `;
     } else if (material.tipo === 'video') {
-      // 🎥 REPRODUCTOR DE VIDEO EMBEBIDO (tipo red social)
       contentHTML = `
         <div style="margin-top: 15px; background: #000; border-radius: 8px; overflow: hidden;">
           <video 
             controls 
             preload="metadata"
             style="width: 100%; max-height: 400px; display: block;"
-            poster=""
           >
             <source src="${material.archivo_url}" type="video/mp4">
             Tu navegador no soporta la reproducción de videos.
@@ -207,12 +239,27 @@ async function cargarMateriales() {
           </button>
         </div>
       `;
+    } else if (material.tipo === 'imagen') {
+      // 🖼️ IMAGEN COMPLETA MOSTRADA DIRECTAMENTE
+      contentHTML = `
+        <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; background: #f9f9f9;">
+          <img 
+            src="${material.archivo_url}" 
+            alt="${material.titulo}"
+            style="width: 100%; height: auto; display: block; cursor: pointer;"
+            onclick="window.open('${material.archivo_url}', '_blank')"
+          >
+        </div>
+        <div style="margin-top: 10px;">
+          <a href="${material.archivo_url}" download style="display: inline-block; padding: 8px 15px; background: #6b0f0f; color: white; text-decoration: none; border-radius: 6px; font-size: 13px;">
+            ⬇️ Descargar Imagen
+          </a>
+        </div>
+      `;
     } else if (material.tipo === 'documento') {
-      // 📄 VISTA PREVIA DE DOCUMENTO
       const esPDF = material.archivo_url.toLowerCase().endsWith('.pdf');
       
       if (esPDF) {
-        // Vista previa embebida para PDFs
         contentHTML = `
           <div style="margin-top: 15px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
             <iframe 
@@ -228,7 +275,6 @@ async function cargarMateriales() {
           </div>
         `;
       } else {
-        // Para otros documentos (Word, Excel, etc.)
         contentHTML = `
           <div style="margin-top: 15px; padding: 20px; background: #f9f9f9; border-radius: 8px; text-align: center;">
             <p style="font-size: 48px; margin-bottom: 10px;">📄</p>
@@ -240,65 +286,117 @@ async function cargarMateriales() {
         `;
       }
     }
-      
-      // Botones de acción solo para administradores
-      const actionButtons = esAdmin ? `
-        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button class="btn-editar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-            ✏️ Editar
-          </button>
-          <button class="btn-eliminar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #cc0000; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-            🗑️ Eliminar
-          </button>
+    
+    const actionButtons = esAdmin ? `
+      <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn-editar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          ✏️ Editar
+        </button>
+        <button class="btn-eliminar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #cc0000; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          🗑️ Eliminar
+        </button>
+      </div>
+    ` : '';
+    
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <span style="font-size: 24px;">${icon}</span>
+        <div>
+          <h3 style="color: #4a0404; margin: 0; font-size: 18px;">${material.titulo}</h3>
+          <span style="font-size: 12px; color: #888;">${tipoTexto} • ${new Date(material.fecha_creacion).toLocaleDateString()}</span>
         </div>
-      ` : '';
+      </div>
+      ${material.descripcion ? `<p style="color: #666; margin-bottom: 10px;">${material.descripcion}</p>` : ''}
+      ${contentHTML}
+      ${actionButtons}
+    `;
+    
+    materialList.appendChild(card);
+    
+    // Event listeners para paginación de blog
+    if (material.tipo === 'blog') {
+      const blogContent = card.querySelector('.blog-content');
+      const btnPrev = card.querySelector('.btn-prev');
+      const btnNext = card.querySelector('.btn-next');
       
-      card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <span style="font-size: 24px;">${icon}</span>
-          <div>
-            <h3 style="color: #4a0404; margin: 0; font-size: 18px;">${material.titulo}</h3>
-            <span style="font-size: 12px; color: #888;">${tipoTexto} • ${new Date(material.fecha_creacion).toLocaleDateString()}</span>
-          </div>
-        </div>
-        ${material.descripcion ? `<p style="color: #666; margin-bottom: 10px;">${material.descripcion}</p>` : ''}
-        ${contentHTML}
-        ${actionButtons}
-      `;
+      if (btnPrev && btnNext) {
+        btnPrev.addEventListener('click', () => cambiarPagina(blogContent, -1));
+        btnNext.addEventListener('click', () => cambiarPagina(blogContent, 1));
+      }
+    }
+    
+    // Event listeners para botones de editar/eliminar
+    if (esAdmin) {
+      const btnEditar = card.querySelector('.btn-editar');
+      const btnEliminar = card.querySelector('.btn-eliminar');
       
-      materialList.appendChild(card);
-      
-      // Agregar event listeners para paginación si es blog
-      if (material.tipo === 'blog') {
-        const blogContent = card.querySelector('.blog-content');
-        const btnPrev = card.querySelector('.btn-prev');
-        const btnNext = card.querySelector('.btn-next');
-        
-        if (btnPrev && btnNext) {
-          btnPrev.addEventListener('click', () => cambiarPagina(blogContent, -1));
-          btnNext.addEventListener('click', () => cambiarPagina(blogContent, 1));
-        }
+      if (btnEditar) {
+        btnEditar.addEventListener('click', () => editarMaterial(material.id));
       }
       
-      // Agregar event listeners para botones de editar/eliminar
-      if (esAdmin) {
-        const btnEditar = card.querySelector('.btn-editar');
-        const btnEliminar = card.querySelector('.btn-eliminar');
-        
-        if (btnEditar) {
-          btnEditar.addEventListener('click', () => editarMaterial(material.id));
-        }
-        
-        if (btnEliminar) {
-          btnEliminar.addEventListener('click', () => eliminarMaterial(material.id, material.titulo));
-        }
+      if (btnEliminar) {
+        btnEliminar.addEventListener('click', () => eliminarMaterial(material.id, material.titulo));
+      }
+    }
+  });
+  
+  // Controles de paginación
+  if (totalPaginas > 1) {
+    const paginationDiv = document.createElement('div');
+    paginationDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 30px; padding: 20px; flex-wrap: wrap;';
+    
+    paginationDiv.innerHTML = `
+      <button id="btnPaginaAnterior" ${paginaActual === 1 ? 'disabled' : ''} style="padding: 10px 20px; background: ${paginaActual === 1 ? '#ccc' : '#6b0f0f'}; color: white; border: none; border-radius: 6px; cursor: ${paginaActual === 1 ? 'not-allowed' : 'pointer'}; font-weight: 600;">
+        ← Anterior
+      </button>
+      
+      <div style="display: flex; gap: 5px;">
+        ${Array.from({ length: totalPaginas }, (_, i) => i + 1).map(p => `
+          <button class="btn-numero-pagina" data-pagina="${p}" style="width: 40px; height: 40px; background: ${p === paginaActual ? '#6b0f0f' : 'white'}; color: ${p === paginaActual ? 'white' : '#4a0404'}; border: 2px solid #6b0f0f; border-radius: 6px; cursor: pointer; font-weight: 600;">
+            ${p}
+          </button>
+        `).join('')}
+      </div>
+      
+      <button id="btnPaginaSiguiente" ${paginaActual === totalPaginas ? 'disabled' : ''} style="padding: 10px 20px; background: ${paginaActual === totalPaginas ? '#ccc' : '#6b0f0f'}; color: white; border: none; border-radius: 6px; cursor: ${paginaActual === totalPaginas ? 'not-allowed' : 'pointer'}; font-weight: 600;">
+        Siguiente →
+      </button>
+    `;
+    
+    materialList.appendChild(paginationDiv);
+    
+    document.getElementById('btnPaginaAnterior').addEventListener('click', () => {
+      if (paginaActual > 1) {
+        paginaActual--;
+        renderizarMaterialesPagina();
+        document.getElementById('sec-material').scrollIntoView({ behavior: 'smooth' });
       }
     });
     
-  } catch (error) {
-    console.error('Error cargando materiales:', error);
-    materialList.innerHTML = '<p style="text-align: center; color: #c33; padding: 40px;">Error al cargar los materiales.</p>';
+    document.getElementById('btnPaginaSiguiente').addEventListener('click', () => {
+      if (paginaActual < totalPaginas) {
+        paginaActual++;
+        renderizarMaterialesPagina();
+        document.getElementById('sec-material').scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+    
+    document.querySelectorAll('.btn-numero-pagina').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const nuevaPagina = parseInt(btn.dataset.pagina);
+        if (nuevaPagina !== paginaActual) {
+          paginaActual = nuevaPagina;
+          renderizarMaterialesPagina();
+          document.getElementById('sec-material').scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
   }
+  
+  const contadorDiv = document.createElement('div');
+  contadorDiv.style.cssText = 'text-align: center; color: #666; margin-top: 15px; font-size: 14px;';
+  contadorDiv.textContent = `Mostrando ${inicio + 1} - ${Math.min(fin, todosLosMateriales.length)} de ${todosLosMateriales.length} materiales`;
+  materialList.appendChild(contadorDiv);
 }
 
 // Función para obtener el contenido de una página específica
@@ -317,7 +415,6 @@ function cambiarPagina(blogContent, direccion) {
   
   if (nuevaPagina < 1 || nuevaPagina > totalPaginas) return;
   
-  // Obtener el contenido completo del material
   const materialId = blogContent.dataset.id;
   supabaseClient
     .from('material_apoyo')
@@ -331,7 +428,6 @@ function cambiarPagina(blogContent, direccion) {
       
       blogContent.dataset.pagina = nuevaPagina;
       
-      // Actualizar botones
       const btnPrev = blogContent.querySelector('.btn-prev');
       const btnNext = blogContent.querySelector('.btn-next');
       const pageInfo = blogContent.querySelector('.pagination span');
@@ -342,14 +438,16 @@ function cambiarPagina(blogContent, direccion) {
     });
 }
 
-// Función para eliminar material
+// Función para eliminar material (con modal personalizado)
 async function eliminarMaterial(id, titulo) {
-  if (!confirm(`¿Estás seguro de que deseas eliminar "${titulo}"? Esta acción no se puede deshacer.`)) {
-    return;
-  }
+  const confirmado = await showConfirm(
+    'Confirmar Eliminación',
+    `¿Estás seguro de que deseas eliminar "<strong>${titulo}</strong>"?<br><br>Esta acción no se puede deshacer.`
+  );
+  
+  if (!confirmado) return;
   
   try {
-    // Primero obtener el material para saber si tiene archivo
     const { data: material, error: fetchError } = await supabaseClient
       .from('material_apoyo')
       .select('archivo_url, tipo')
@@ -358,9 +456,7 @@ async function eliminarMaterial(id, titulo) {
     
     if (fetchError) throw fetchError;
     
-    // Si tiene archivo, eliminarlo del storage
-    if (material.archivo_url && (material.tipo === 'documento' || material.tipo === 'video')) {
-      // Extraer el nombre del archivo de la URL
+    if (material.archivo_url && (material.tipo === 'documento' || material.tipo === 'video' || material.tipo === 'imagen')) {
       const urlParts = material.archivo_url.split('/');
       const fileName = urlParts[urlParts.length - 1];
       
@@ -370,11 +466,9 @@ async function eliminarMaterial(id, titulo) {
       
       if (storageError) {
         console.warn('Error eliminando archivo del storage:', storageError);
-        // Continuar aunque falle la eliminación del archivo
       }
     }
     
-    // Eliminar el registro de la base de datos
     const { error: deleteError } = await supabaseClient
       .from('material_apoyo')
       .delete()
@@ -382,19 +476,18 @@ async function eliminarMaterial(id, titulo) {
     
     if (deleteError) throw deleteError;
     
-    alert('Material eliminado exitosamente');
-    cargarMateriales(); // Recargar la lista
+    await showAlert('¡Eliminado!', 'El material se ha eliminado correctamente', 'success');
+    cargarMateriales();
     
   } catch (error) {
     console.error('Error:', error);
-    alert('Error al eliminar el material: ' + error.message);
+    await showAlert('Error', 'Error al eliminar el material: ' + error.message, 'error');
   }
 }
 
 // Función para editar material
 async function editarMaterial(id) {
   try {
-    // Obtener los datos actuales del material
     const { data: material, error } = await supabaseClient
       .from('material_apoyo')
       .select('*')
@@ -403,7 +496,6 @@ async function editarMaterial(id) {
     
     if (error) throw error;
     
-    // Crear modal de edición
     const modal = document.createElement('div');
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;';
     
@@ -416,6 +508,7 @@ async function editarMaterial(id) {
           <select id="editTipo" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
             <option value="documento" ${material.tipo === 'documento' ? 'selected' : ''}>Documento</option>
             <option value="video" ${material.tipo === 'video' ? 'selected' : ''}>Video</option>
+            <option value="imagen" ${material.tipo === 'imagen' ? 'selected' : ''}>Imagen</option>
             <option value="blog" ${material.tipo === 'blog' ? 'selected' : ''}>Blog</option>
           </select>
         </div>
@@ -454,7 +547,6 @@ async function editarMaterial(id) {
     
     document.body.appendChild(modal);
     
-    // Event listener para cambiar campos según tipo
     document.getElementById('editTipo').addEventListener('change', function() {
       const tipo = this.value;
       const archivoField = document.getElementById('editArchivoField');
@@ -469,12 +561,10 @@ async function editarMaterial(id) {
       }
     });
     
-    // Event listener para cancelar
     document.getElementById('btnCancelarEdicion').addEventListener('click', () => {
       document.body.removeChild(modal);
     });
     
-    // Event listener para guardar
     document.getElementById('btnGuardarEdicion').addEventListener('click', async () => {
       await guardarEdicion(id, material);
       document.body.removeChild(modal);
@@ -482,7 +572,7 @@ async function editarMaterial(id) {
     
   } catch (error) {
     console.error('Error:', error);
-    alert('Error al cargar el material para editar: ' + error.message);
+    await showAlert('Error', 'Error al cargar el material para editar: ' + error.message, 'error');
   }
 }
 
@@ -495,12 +585,12 @@ async function guardarEdicion(id, materialOriginal) {
   const contenido = document.getElementById('editContenido').value.trim();
   
   if (!titulo) {
-    alert('Por favor ingresa un título');
+    await showAlert('Campo Requerido', 'Por favor ingresa un título', 'warning');
     return;
   }
   
   if (tipo === 'blog' && !contenido) {
-    alert('Por favor ingresa el contenido del blog');
+    await showAlert('Campo Requerido', 'Por favor ingresa el contenido del blog', 'warning');
     return;
   }
   
@@ -509,11 +599,9 @@ async function guardarEdicion(id, materialOriginal) {
   btnGuardar.textContent = 'Guardando...';
   
   try {
-    let archivoUrl = materialOriginal.archivo_url; // Mantener el archivo actual por defecto
+    let archivoUrl = materialOriginal.archivo_url;
     
-    // Si se seleccionó un nuevo archivo y el tipo es documento/video
-    if (archivo && (tipo === 'documento' || tipo === 'video')) {
-      // Eliminar el archivo anterior si existe
+    if (archivo && (tipo === 'documento' || tipo === 'video' || tipo === 'imagen')) {
       if (materialOriginal.archivo_url) {
         const urlParts = materialOriginal.archivo_url.split('/');
         const oldFileName = urlParts[urlParts.length - 1];
@@ -523,7 +611,6 @@ async function guardarEdicion(id, materialOriginal) {
           .remove([oldFileName]);
       }
       
-      // Subir el nuevo archivo
       const fileName = `${Date.now()}_${archivo.name}`;
       const { error: uploadError } = await supabaseClient.storage
         .from('material-apoyo')
@@ -531,7 +618,6 @@ async function guardarEdicion(id, materialOriginal) {
       
       if (uploadError) throw uploadError;
       
-      // Obtener URL pública del nuevo archivo
       const { data: urlData } = supabaseClient.storage
         .from('material-apoyo')
         .getPublicUrl(fileName);
@@ -539,13 +625,12 @@ async function guardarEdicion(id, materialOriginal) {
       archivoUrl = urlData.publicUrl;
     }
     
-    // Actualizar en la base de datos
     const updateData = {
       tipo: tipo,
       titulo: titulo,
       descripcion: descripcion,
       contenido: tipo === 'blog' ? contenido : null,
-      archivo_url: (tipo === 'documento' || tipo === 'video') ? archivoUrl : null
+      archivo_url: (tipo === 'documento' || tipo === 'video' || tipo === 'imagen') ? archivoUrl : null
     };
     
     const { error: updateError } = await supabaseClient
@@ -555,12 +640,12 @@ async function guardarEdicion(id, materialOriginal) {
     
     if (updateError) throw updateError;
     
-    alert('Material actualizado exitosamente');
-    cargarMateriales(); // Recargar la lista
+    await showAlert('¡Actualizado!', 'El material se ha actualizado correctamente', 'success');
+    cargarMateriales();
     
   } catch (error) {
     console.error('Error:', error);
-    alert('Error al actualizar el material: ' + error.message);
+    await showAlert('Error', 'Error al actualizar el material: ' + error.message, 'error');
   } finally {
     btnGuardar.disabled = false;
     btnGuardar.textContent = 'Guardar Cambios';
@@ -569,12 +654,10 @@ async function guardarEdicion(id, materialOriginal) {
 
 // Inicializar cuando el dashboard esté listo
 document.addEventListener('DOMContentLoaded', () => {
-  // Mostrar sección de subida solo para administradores
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   if (usuario && usuario.nivel_acceso === 'administrador') {
     document.getElementById('uploadSection').style.display = 'block';
   }
   
-  // Cargar materiales
   cargarMateriales();
 });
