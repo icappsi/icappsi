@@ -14,9 +14,7 @@ document.getElementById('materialTipo').addEventListener('change', function() {
 });
 
 // Subir material
-// Subir material
 document.getElementById('btnSubirMaterial').addEventListener('click', async () => {
-  // Validar que sea administrador
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   if (!usuario || usuario.nivel_acceso !== 'administrador') {
     alert('Solo los administradores pueden subir material');
@@ -54,14 +52,28 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     // Si es documento o video, subir el archivo primero
     if (tipo === 'documento' || tipo === 'video') {
       const fileName = `${Date.now()}_${archivo.name}`;
+      
+      // Mostrar progreso de subida
+      btnSubir.textContent = 'Subiendo archivo... 0%';
+      
       const { data: uploadData, error: uploadError } = await supabaseClient.storage
         .from('material-apoyo')
-        .upload(fileName, archivo);
+        .upload(fileName, archivo, {
+          cacheControl: '3600',
+          upsert: false
+        });
       
       if (uploadError) {
         console.error('Error subiendo archivo:', uploadError);
         throw new Error('Error al subir el archivo: ' + uploadError.message);
       }
+      
+      // ✅ CONFIRMACIÓN VISUAL DE SUBIDA EXITOSA
+      btnSubir.textContent = '✅ Archivo subido correctamente';
+      btnSubir.style.background = '#28a745';
+      
+      // Esperar un momento para que el usuario vea la confirmación
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Obtener URL pública del archivo
       const { data: urlData } = supabaseClient.storage
@@ -72,6 +84,9 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     }
     
     // Guardar en la base de datos
+    btnSubir.textContent = 'Guardando en base de datos...';
+    btnSubir.style.background = '#6b0f0f';
+    
     const { error: dbError } = await supabaseClient
       .from('material_apoyo')
       .insert({
@@ -85,21 +100,31 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     
     if (dbError) throw dbError;
     
+    // ✅ CONFIRMACIÓN FINAL EXITOSA
+    btnSubir.textContent = '✅ ¡Material publicado exitosamente!';
+    btnSubir.style.background = '#28a745';
+    
     // Limpiar formulario
     document.getElementById('materialTitulo').value = '';
     document.getElementById('materialDescripcion').value = '';
     document.getElementById('materialArchivo').value = '';
     document.getElementById('materialContenido').value = '';
     
-    alert('Material publicado exitosamente');
-    cargarMateriales(); // Recargar la lista
+    // Recargar la lista después de 1.5 segundos
+    setTimeout(() => {
+      cargarMateriales();
+      // Resetear botón
+      btnSubir.disabled = false;
+      btnSubir.textContent = 'Publicar Material';
+      btnSubir.style.background = '#6b0f0f';
+    }, 1500);
     
   } catch (error) {
     console.error('Error:', error);
     alert('Error al publicar el material: ' + error.message);
-  } finally {
     btnSubir.disabled = false;
     btnSubir.textContent = 'Publicar Material';
+    btnSubir.style.background = '#6b0f0f';
   }
 });
 
@@ -139,35 +164,82 @@ async function cargarMateriales() {
         tipoTexto = 'Blog';
       }
       
-      let contentHTML = '';
+        let contentHTML = '';
+    
+    if (material.tipo === 'blog') {
+      const contenidoCompleto = material.contenido || '';
+      const palabras = contenidoCompleto.split(' ');
+      const palabrasPorPagina = 200;
+      const totalPaginasBlog = Math.ceil(palabras.length / palabrasPorPagina);
       
-      if (material.tipo === 'blog') {
-        // Para blogs, mostrar contenido con paginación
-        const contenidoCompleto = material.contenido || '';
-        const palabras = contenidoCompleto.split(' ');
-        const palabrasPorPagina = 200;
-        const totalPaginas = Math.ceil(palabras.length / palabrasPorPagina);
-        
+      contentHTML = `
+        <div class="blog-content" data-id="${material.id}" data-pagina="1" data-total="${totalPaginasBlog}">
+          <div class="blog-text" style="line-height: 1.6; text-align: justify;">${getPaginaContenido(contenidoCompleto, 1, palabrasPorPagina)}</div>
+          ${totalPaginasBlog > 1 ? `
+            <div class="pagination" style="margin-top: 15px; text-align: center;">
+              <button class="btn-prev" disabled style="padding: 8px 15px; margin: 0 5px; background: #6b0f0f; color: white; border: none; border-radius: 4px; cursor: pointer;">Anterior</button>
+              <span style="margin: 0 10px;">Página 1 de ${totalPaginasBlog}</span>
+              <button class="btn-next" style="padding: 8px 15px; margin: 0 5px; background: #6b0f0f; color: white; border: none; border-radius: 4px; cursor: pointer;">Siguiente</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    } else if (material.tipo === 'video') {
+      // 🎥 REPRODUCTOR DE VIDEO EMBEBIDO (tipo red social)
+      contentHTML = `
+        <div style="margin-top: 15px; background: #000; border-radius: 8px; overflow: hidden;">
+          <video 
+            controls 
+            preload="metadata"
+            style="width: 100%; max-height: 400px; display: block;"
+            poster=""
+          >
+            <source src="${material.archivo_url}" type="video/mp4">
+            Tu navegador no soporta la reproducción de videos.
+          </video>
+        </div>
+        <div style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <a href="${material.archivo_url}" download style="padding: 8px 15px; background: #6b0f0f; color: white; text-decoration: none; border-radius: 6px; font-size: 13px;">
+            ⬇️ Descargar Video
+          </a>
+          <button onclick="window.open('${material.archivo_url}', '_blank')" style="padding: 8px 15px; background: #555; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+            🔗 Abrir en nueva pestaña
+          </button>
+        </div>
+      `;
+    } else if (material.tipo === 'documento') {
+      // 📄 VISTA PREVIA DE DOCUMENTO
+      const esPDF = material.archivo_url.toLowerCase().endsWith('.pdf');
+      
+      if (esPDF) {
+        // Vista previa embebida para PDFs
         contentHTML = `
-          <div class="blog-content" data-id="${material.id}" data-pagina="1" data-total="${totalPaginas}">
-            <div class="blog-text">${getPaginaContenido(contenidoCompleto, 1, palabrasPorPagina)}</div>
-            ${totalPaginas > 1 ? `
-              <div class="pagination" style="margin-top: 15px; text-align: center;">
-                <button class="btn-prev" disabled style="padding: 8px 15px; margin: 0 5px; background: #6b0f0f; color: white; border: none; border-radius: 4px; cursor: pointer;">Anterior</button>
-                <span style="margin: 0 10px;">Página 1 de ${totalPaginas}</span>
-                <button class="btn-next" style="padding: 8px 15px; margin: 0 5px; background: #6b0f0f; color: white; border: none; border-radius: 4px; cursor: pointer;">Siguiente</button>
-              </div>
-            ` : ''}
+          <div style="margin-top: 15px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+            <iframe 
+              src="${material.archivo_url}" 
+              style="width: 100%; height: 500px; border: none;"
+              title="Vista previa del documento"
+            ></iframe>
+          </div>
+          <div style="margin-top: 10px;">
+            <a href="${material.archivo_url}" download style="display: inline-block; padding: 10px 20px; background: #6b0f0f; color: white; text-decoration: none; border-radius: 6px;">
+              ⬇️ Descargar PDF
+            </a>
           </div>
         `;
       } else {
-        // Para documentos/videos, mostrar enlace
+        // Para otros documentos (Word, Excel, etc.)
         contentHTML = `
-          <a href="${material.archivo_url}" target="_blank" style="display: inline-block; padding: 10px 20px; background: #6b0f0f; color: white; text-decoration: none; border-radius: 6px; margin-top: 10px;">
-            Ver ${tipoTexto}
-          </a>
+          <div style="margin-top: 15px; padding: 20px; background: #f9f9f9; border-radius: 8px; text-align: center;">
+            <p style="font-size: 48px; margin-bottom: 10px;">📄</p>
+            <p style="color: #666; margin-bottom: 15px;">Documento listo para descargar</p>
+            <a href="${material.archivo_url}" download style="display: inline-block; padding: 12px 25px; background: #6b0f0f; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+              ⬇️ Descargar Documento
+            </a>
+          </div>
         `;
       }
+    }
       
       // Botones de acción solo para administradores
       const actionButtons = esAdmin ? `
