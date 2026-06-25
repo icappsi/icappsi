@@ -443,7 +443,7 @@ async function renderizarMaterialesPagina() {
     const actionButtons = esAdmin ? `
       <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
         <button class="btn-ver-confirmaciones" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-          👁️ Ver Confirmaciones
+          Ver Confirmaciones
         </button>
         <button class="btn-editar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
           ✏️ Editar
