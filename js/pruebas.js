@@ -563,16 +563,16 @@ async function verResultados(pruebaId) {
     .from('intentos_pruebas')
     .select(`
       *,
-      usuarios:usuario_id (primer_nombre, primer_apellido, cedula)
+      usuarios:usuario_id (id, primer_nombre, primer_apellido, cedula)
     `)
     .eq('prueba_id', pruebaId)
-    .eq('estado', 'completado');
+    .order('fecha_fin', { ascending: false });
   
   const modal = document.createElement('div');
   modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;';
   
   modal.innerHTML = `
-    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto;">
+    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto;">
       <h2 style="color: #4a0404; margin-bottom: 20px;">Resultados - ${prueba.titulo}</h2>
       
       <div id="listaResultados"></div>
@@ -592,26 +592,62 @@ async function verResultados(pruebaId) {
   } else {
     intentos.forEach(intento => {
       const usuario = intento.usuarios;
-      const porcentaje = ((intento.respuestas_correctas / intento.total_preguntas) * 100).toFixed(1);
+      const porcentaje = intento.total_preguntas > 0 ? ((intento.respuestas_correctas / intento.total_preguntas) * 100).toFixed(1) : 0;
       const estado = intento.puntuacion >= 60 ? 'Aprobado' : 'Reprobado';
       const color = intento.puntuacion >= 60 ? '#28a745' : '#dc3545';
+      const fechaCompletado = intento.fecha_fin ? new Date(intento.fecha_fin).toLocaleString() : 'En progreso';
       
       const div = document.createElement('div');
       div.style.cssText = 'background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; margin-bottom: 10px;';
       div.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <p style="margin: 0; font-weight: 600;">${usuario.primer_nombre} ${usuario.primer_apellido}</p>
-            <p style="margin: 0; font-size: 12px; color: #888;">Cédula: ${usuario.cedula}</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+          <div style="flex: 1; min-width: 200px;">
+            <p style="margin: 0; font-weight: 600; font-size: 16px;">${usuario.primer_nombre} ${usuario.primer_apellido}</p>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #888;">Cédula: ${usuario.cedula}</p>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #888;">Completado: ${fechaCompletado}</p>
           </div>
-          <div style="text-align: right;">
-            <p style="margin: 0; font-size: 24px; font-weight: 700; color: ${color};">${porcentaje}%</p>
-            <p style="margin: 0; font-size: 12px; color: ${color}; font-weight: 600;">${estado}</p>
-            <p style="margin: 0; font-size: 11px; color: #888;">${intento.respuestas_correctas}/${intento.total_preguntas} correctas</p>
+          <div style="text-align: center; min-width: 120px;">
+            <p style="margin: 0; font-size: 32px; font-weight: 700; color: ${color};">${porcentaje}%</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: 600; color: ${color};">${estado}</p>
+            <p style="margin: 5px 0 0 0; font-size: 11px; color: #888;">${intento.respuestas_correctas}/${intento.total_preguntas} correctas</p>
+          </div>
+          <div style="min-width: 150px;">
+            <button class="btn-rehabilitar" data-intento-id="${intento.id}" data-usuario-id="${usuario.id}" style="width: 100%; padding: 10px 15px; background: #ffc107; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px;">
+              🔄 Rehabilitar Prueba
+            </button>
           </div>
         </div>
       `;
       listaDiv.appendChild(div);
+      
+      div.querySelector('.btn-rehabilitar').addEventListener('click', async () => {
+        const confirmado = await showConfirm(
+          'Rehabilitar Prueba',
+          `¿Estás seguro de habilitar esta prueba nuevamente para <strong>${usuario.primer_nombre} ${usuario.primer_apellido}</strong>?<br><br>El usuario podrá realizar la prueba de nuevo.`
+        );
+        
+        if (!confirmado) return;
+        
+        try {
+          // Eliminar el intento completado para que el usuario pueda volver a realizarla
+          const { error } = await supabaseClient
+            .from('intentos_pruebas')
+            .delete()
+            .eq('id', intento.id);
+          
+          if (error) throw error;
+          
+          await showAlert('¡Rehabilitado!', 'La prueba ha sido rehabilitada exitosamente. El usuario puede realizarla nuevamente.', 'success');
+          
+          // Recargar resultados
+          document.body.removeChild(modal);
+          verResultados(pruebaId);
+          
+        } catch (error) {
+          console.error('Error:', error);
+          await showAlert('Error', 'Error al rehabilitar la prueba: ' + error.message, 'error');
+        }
+      });
     });
   }
   
@@ -671,51 +707,86 @@ async function cargarPruebasUsuario() {
     
     for (const prueba of pruebasFiltradas) {
       // Verificar si el usuario ya completó esta prueba
-      const { data: intento } = await supabaseClient
+      const { data: intentoCompletado } = await supabaseClient
         .from('intentos_pruebas')
         .select('*')
         .eq('prueba_id', prueba.id)
         .eq('usuario_id', usuario.id)
         .eq('estado', 'completado')
-        .single();
+        .maybeSingle();
+      
+      // Verificar si hay un intento en progreso
+      const { data: intentoEnProgreso } = await supabaseClient
+        .from('intentos_pruebas')
+        .select('*')
+        .eq('prueba_id', prueba.id)
+        .eq('usuario_id', usuario.id)
+        .eq('estado', 'en_progreso')
+        .maybeSingle();
       
       const card = document.createElement('div');
       card.style.cssText = 'background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);';
       
       const fechaFin = new Date(prueba.fecha_fin).toLocaleString();
       
-      if (intento) {
-        const porcentaje = ((intento.respuestas_correctas / intento.total_preguntas) * 100).toFixed(1);
-        const estado = intento.puntuacion >= 60 ? 'Aprobado' : 'Reprobado';
-        const color = intento.puntuacion >= 60 ? '#28a745' : '#dc3545';
+      if (intentoCompletado) {
+        // Prueba ya completada
+        const porcentaje = intentoCompletado.total_preguntas > 0 ? ((intentoCompletado.respuestas_correctas / intentoCompletado.total_preguntas) * 100).toFixed(1) : 0;
+        const estado = intentoCompletado.puntuacion >= 60 ? 'Aprobado' : 'Reprobado';
+        const color = intentoCompletado.puntuacion >= 60 ? '#28a745' : '#dc3545';
+        const icono = intentoCompletado.puntuacion >= 60 ? '✅' : '❌';
         
+        card.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+            <span style="font-size: 48px;">${icono}</span>
+            <div style="flex: 1;">
+              <h3 style="color: #4a0404; margin: 0 0 5px 0; font-size: 20px;">${prueba.titulo}</h3>
+              <p style="color: #666; margin: 0; font-size: 14px;">${prueba.descripcion || 'Sin descripción'}</p>
+            </div>
+          </div>
+          
+          <div style="background: ${color}15; border: 2px solid ${color}; border-radius: 8px; padding: 20px; text-align: center;">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #666; font-weight: 600;">PRUEBA COMPLETADA</p>
+            <p style="margin: 0 0 5px 0; font-size: 48px; font-weight: 700; color: ${color};">${porcentaje}%</p>
+            <p style="margin: 0 0 10px 0; font-size: 20px; font-weight: 600; color: ${color};">${estado}</p>
+            <p style="margin: 0; font-size: 13px; color: #888;">
+              Respuestas correctas: ${intentoCompletado.respuestas_correctas} de ${intentoCompletado.total_preguntas}
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 12px; color: #999;">
+              Si necesitas realizar esta prueba nuevamente, contacta al administrador.
+            </p>
+          </div>
+        `;
+      } else if (intentoEnProgreso) {
+        // Prueba en progreso (caso raro, pero posible si se cerró el navegador)
         card.innerHTML = `
           <h3 style="color: #4a0404; margin: 0 0 10px 0;">${prueba.titulo}</h3>
           <p style="color: #666; margin-bottom: 15px;">${prueba.descripcion || 'Sin descripción'}</p>
-          <div style="background: ${color}15; border: 2px solid ${color}; border-radius: 8px; padding: 15px; text-align: center;">
-            <p style="margin: 0; font-size: 14px; color: #666;">Ya completaste esta prueba</p>
-            <p style="margin: 10px 0 0 0; font-size: 32px; font-weight: 700; color: ${color};">${porcentaje}%</p>
-            <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: 600; color: ${color};">${estado}</p>
+          <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; text-align: center;">
+            <p style="margin: 0; color: #856404; font-weight: 600;">⚠️ Tienes una prueba en progreso</p>
+            <p style="margin: 10px 0 0 0; font-size: 13px; color: #856404;">
+              Contacta al administrador para reiniciar la prueba.
+            </p>
           </div>
         `;
       } else {
+        // Prueba disponible para realizar
         card.innerHTML = `
           <h3 style="color: #4a0404; margin: 0 0 10px 0;">${prueba.titulo}</h3>
           <p style="color: #666; margin-bottom: 15px;">${prueba.descripcion || 'Sin descripción'}</p>
-          <p style="font-size: 13px; color: #888; margin-bottom: 15px;">Disponible hasta: ${fechaFin}</p>
-          ${prueba.tiempo_limite > 0 ? `<p style="font-size: 13px; color: #888; margin-bottom: 15px;">Tiempo límite: ${prueba.tiempo_limite} minutos</p>` : ''}
-          <button class="btn-iniciar-prueba" data-id="${prueba.id}" style="width: 100%; padding: 12px; background: #6b0f0f; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
-            Iniciar Prueba
+          <div style="font-size: 13px; color: #888; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 6px;">
+            <p style="margin: 0;"><strong>Disponible hasta:</strong> ${fechaFin}</p>
+            ${prueba.tiempo_limite > 0 ? `<p style="margin: 5px 0 0 0;"><strong>Tiempo límite:</strong> ${prueba.tiempo_limite} minutos</p>` : ''}
+          </div>
+          <button class="btn-iniciar-prueba" data-id="${prueba.id}" style="width: 100%; padding: 15px; background: #6b0f0f; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 16px; transition: all 0.3s;">
+            📝 Iniciar Prueba
           </button>
         `;
+        
+        card.querySelector('.btn-iniciar-prueba').addEventListener('click', () => iniciarPrueba(prueba.id));
       }
       
       listaDiv.appendChild(card);
-      
-      const btnIniciar = card.querySelector('.btn-iniciar-prueba');
-      if (btnIniciar) {
-        btnIniciar.addEventListener('click', () => iniciarPrueba(prueba.id));
-      }
     }
     
   } catch (error) {
@@ -898,7 +969,6 @@ async function enviarPrueba(intentoId) {
       const opcionSeleccionada = pregunta.opciones[parseInt(respuestaUsuario)];
       esCorrecta = opcionSeleccionada && opcionSeleccionada.correcta;
     } else if (pregunta.tipo === 'texto_libre') {
-      // Comparación simple (puede mejorarse con palabras clave)
       esCorrecta = respuestaUsuario && respuestaUsuario.toLowerCase().trim() === pregunta.respuesta_correcta.toLowerCase().trim();
     }
     
@@ -908,7 +978,7 @@ async function enviarPrueba(intentoId) {
     }
   });
   
-  const puntuacion = (puntosObtenidos / totalPuntos) * 100;
+  const puntuacion = totalPuntos > 0 ? (puntosObtenidos / totalPuntos) * 100 : 0;
   const estado = puntuacion >= 60 ? 'aprobado' : 'reprobado';
   
   try {
@@ -923,19 +993,57 @@ async function enviarPrueba(intentoId) {
       })
       .eq('id', intentoId);
     
-    // Cerrar modal
-    document.querySelectorAll('.modal-overlay').forEach(m => document.body.removeChild(m));
+    // Cerrar modal de la prueba
+    const modals = document.querySelectorAll('[style*="position: fixed"]');
+    modals.forEach(m => {
+      if (m.querySelector('#preguntasContainer')) {
+        document.body.removeChild(m);
+      }
+    });
     
-    const resultado = puntuacion >= 60 ? 'Aprobado' : 'Reprobado';
+    // Mostrar resultado detallado
+    const resultado = puntuacion >= 60 ? 'APROBADO' : 'REPROBADO';
     const color = puntuacion >= 60 ? 'success' : 'error';
+    const icono = puntuacion >= 60 ? '🎉' : '😔';
     
-    await showAlert(`Prueba ${resultado}`, `Tu puntuación: ${puntuacion.toFixed(1)}%<br>Respuestas correctas: ${respuestasCorrectas}/${preguntasActuales.length}`, color);
+    const modalResultado = document.createElement('div');
+    modalResultado.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 10000; padding: 20px;';
     
-    cargarPruebasUsuario();
+    modalResultado.innerHTML = `
+      <div style="background: white; border-radius: 12px; padding: 40px; max-width: 500px; width: 100%; text-align: center;">
+        <div style="font-size: 80px; margin-bottom: 20px;">${icono}</div>
+        <h2 style="color: ${puntuacion >= 60 ? '#28a745' : '#dc3545'}; margin: 0 0 20px 0; font-size: 32px;">${resultado}</h2>
+        
+        <div style="background: #f9f9f9; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+          <p style="margin: 0 0 10px 0; font-size: 48px; font-weight: 700; color: ${puntuacion >= 60 ? '#28a745' : '#dc3545'};">${puntuacion.toFixed(1)}%</p>
+          <p style="margin: 0; font-size: 16px; color: #666;">Puntuación Obtenida</p>
+        </div>
+        
+        <div style="text-align: left; background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Respuestas correctas:</strong> ${respuestasCorrectas} de ${preguntasActuales.length}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Puntos obtenidos:</strong> ${puntosObtenidos} de ${totalPuntos}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Estado:</strong> <span style="color: ${puntuacion >= 60 ? '#28a745' : '#dc3545'}; font-weight: 600;">${resultado}</span></p>
+        </div>
+        
+        <p style="font-size: 13px; color: #888; margin-bottom: 20px;">
+          ${puntuacion >= 60 ? '¡Felicitaciones! Has aprobado esta prueba.' : 'No alcanzaste el 60% requerido. Contacta al administrador si necesitas realizarla nuevamente.'}
+        </p>
+        
+        <button id="btnCerrarResultado" style="width: 100%; padding: 15px; background: #6b0f0f; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 16px;">
+          Aceptar
+        </button>
+      </div>
+    `;
+    
+    document.body.appendChild(modalResultado);
+    
+    document.getElementById('btnCerrarResultado').addEventListener('click', () => {
+      document.body.removeChild(modalResultado);
+      cargarPruebasUsuario();
+    });
     
   } catch (error) {
     console.error('Error:', error);
     await showAlert('Error', 'Error al enviar la prueba: ' + error.message, 'error');
   }
 }
-
