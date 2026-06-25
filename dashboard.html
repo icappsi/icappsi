@@ -353,11 +353,22 @@
   <div id="materialList">
     <p style="text-align: center; color: #888; padding: 20px;">Cargando materiales...</p>
   </div>
+<fieldset class="content-fieldset" id="sec-pruebas">
+  <legend>Pruebas</legend>
+  
+  <!-- Sección de administración (solo visible para admins) -->
+  <div id="adminPruebasSection" class="admin-only" style="display: none; margin-bottom: 30px;">
+    <button id="btnNuevaPrueba" style="width: 100%; padding: 12px; background: #6b0f0f; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-bottom: 20px;">
+      + Crear Nueva Prueba
+    </button>
+    
+    <!-- Lista de pruebas creadas -->
+    <div id="listaPruebasAdmin"></div>
+  </div>
+  
+  <!-- Sección de usuario (visible para todos) -->
+  <div id="listaPruebasUsuario"></div>
 </fieldset>
-    <fieldset class="content-fieldset" id="sec-pruebas">
-      <legend>Pruebas</legend>
-      <p class="placeholder-text">Aquí se cargará el contenido de las Pruebas.</p>
-    </fieldset>
 
     <fieldset class="content-fieldset admin-only" id="sec-historial">
       <legend>Historial</legend>
