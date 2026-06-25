@@ -52,22 +52,41 @@ function evaluarTextoLibre(respuestaUsuario, pregunta) {
     return { correcta: false, manual: false };
   }
   
+  // Verificar palabras clave con umbral (al menos 2 de cada 3)
   if (pregunta.palabras_clave && pregunta.palabras_clave.length > 0) {
-    const todasLasPalabras = pregunta.palabras_clave.every(palabra => 
+    const palabrasEncontradas = pregunta.palabras_clave.filter(palabra => 
       textoUsuario.includes(normalizarTexto(palabra))
     );
     
-    if (todasLasPalabras) {
+    const totalPalabras = pregunta.palabras_clave.length;
+    const minimoRequerido = Math.max(1, Math.ceil(totalPalabras * 0.67)); // 67% = al menos 2 de 3
+    
+    if (palabrasEncontradas.length >= minimoRequerido) {
       return { correcta: true, manual: false };
     }
   }
   
+  // Verificar respuestas válidas (coincidencia parcial)
   if (pregunta.respuestas_validas && pregunta.respuestas_validas.length > 0) {
     const coincide = pregunta.respuestas_validas.some(respuestaValida => {
       const respuestaNormalizada = normalizarTexto(respuestaValida);
-      return textoUsuario === respuestaNormalizada || 
-             textoUsuario.includes(respuestaNormalizada) ||
-             respuestaNormalizada.includes(textoUsuario);
+      
+      // Coincidencia exacta
+      if (textoUsuario === respuestaNormalizada) {
+        return true;
+      }
+      
+      // Coincidencia parcial (al menos 70% de las palabras coinciden)
+      const palabrasUsuario = textoUsuario.split(' ').filter(p => p);
+      const palabrasRespuesta = respuestaNormalizada.split(' ').filter(p => p);
+      
+      const palabrasCoincidentes = palabrasUsuario.filter(palabra => 
+        palabrasRespuesta.some(pr => pr.includes(palabra) || palabra.includes(pr))
+      );
+      
+      const porcentajeCoincidencia = palabrasCoincidentes.length / Math.max(palabrasUsuario.length, palabrasRespuesta.length);
+      
+      return porcentajeCoincidencia >= 0.7;
     });
     
     if (coincide) {
@@ -77,7 +96,6 @@ function evaluarTextoLibre(respuestaUsuario, pregunta) {
   
   return { correcta: false, manual: false };
 }
-
 // ============================================
 // 3. CREAR NUEVA PRUEBA (ADMIN)
 // ============================================
@@ -1425,8 +1443,28 @@ async function verDetalleIntento(intentoId, pruebaId) {
       }
     }
     
-    const colorRespuesta = respuestaUsuarioTexto === 'Sin responder' ? '#888' : (esCorrecta ? '#28a745' : '#dc3545');
+      const colorRespuesta = respuestaUsuarioTexto === 'Sin responder' ? '#888' : (esCorrecta ? '#28a745' : '#dc3545');
     const icono = respuestaUsuarioTexto === 'Sin responder' ? '⚪' : (esCorrecta ? '✅' : '❌');
+    
+    // Determinar la respuesta correcta para mostrar
+    let respuestaCorrectaTexto = 'N/A';
+    if (pregunta.tipo === 'verdadero_falso') {
+      respuestaCorrectaTexto = pregunta.respuesta_correcta === 'verdadero' ? 'Verdadero' : 'Falso';
+    } else if (pregunta.tipo === 'opcion_multiple') {
+      const opcionCorrecta = pregunta.opciones?.find(o => o.correcta);
+      respuestaCorrectaTexto = opcionCorrecta ? opcionCorrecta.texto : 'N/A';
+    } else if (pregunta.tipo === 'texto_libre') {
+      // Para texto libre, mostrar las respuestas válidas o palabras clave
+      if (pregunta.respuestas_validas && pregunta.respuestas_validas.length > 0) {
+        respuestaCorrectaTexto = pregunta.respuestas_validas.join(' / ');
+      } else if (pregunta.palabras_clave && pregunta.palabras_clave.length > 0) {
+        respuestaCorrectaTexto = 'Debe contener: ' + pregunta.palabras_clave.join(', ');
+      } else if (pregunta.respuesta_correcta) {
+        respuestaCorrectaTexto = pregunta.respuesta_correcta;
+      } else {
+        respuestaCorrectaTexto = 'Evaluación manual requerida';
+      }
+    }
     
     preguntasHTML += `
       <div style="border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; margin-bottom: 10px; background: #fafafa; page-break-inside: avoid;">
@@ -1441,16 +1479,11 @@ async function verDetalleIntento(intentoId, pruebaId) {
           </div>
           <div style="text-align: right;">
             <p style="margin: 0; font-size: 13px; color: #666;"><strong>Respuesta correcta:</strong></p>
-            <p style="margin: 5px 0 0 0; color: #28a745; font-weight: 600;">
-              ${pregunta.tipo === 'verdadero_falso' ? (pregunta.respuesta_correcta === 'verdadero' ? 'Verdadero' : 'Falso') : 
-                (pregunta.tipo === 'opcion_multiple' ? (pregunta.opciones?.find(o => o.correcta)?.texto || 'N/A') : 
-                pregunta.respuesta_correcta || 'N/A')}
-            </p>
+            <p style="margin: 5px 0 0 0; color: #28a745; font-weight: 600;">${respuestaCorrectaTexto}</p>
           </div>
         </div>
       </div>
     `;
-  });
   
   modal.innerHTML = `
     <div style="background: white; border-radius: 12px; padding: 30px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto;">
