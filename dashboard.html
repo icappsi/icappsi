@@ -285,6 +285,7 @@
       <option value="documento">Documento (PDF, Word, etc.)</option>
       <option value="video">Video</option>
       <option value="imagen">Imagen</option>
+      <option value="presentacion">Presentación (PowerPoint)</option>
       <option value="blog">Entrada de Blog (Texto)</option>
     </select>
   </div>
@@ -299,16 +300,49 @@
     <textarea id="materialDescripcion" placeholder="Breve descripción" rows="2" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
   </div>
   
-  <!-- Campo para archivos (documento/video/imagen) -->
+  <!-- Campo para archivos (documento/video/imagen/presentacion) -->
   <div id="archivoField" style="margin-bottom: 15px;">
     <label style="display: block; margin-bottom: 5px; font-weight: 600;">Archivo:</label>
     <input type="file" id="materialArchivo" accept="*/*" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
   </div>
   
-  <!-- Campo para contenido de blog -->
+  <!-- Campo para contenido de blog con editor enriquecido -->
   <div id="contenidoField" style="margin-bottom: 15px; display: none;">
     <label style="display: block; margin-bottom: 5px; font-weight: 600;">Contenido del Blog:</label>
-    <textarea id="materialContenido" placeholder="Escribe aquí el contenido del blog..." rows="8" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit;"></textarea>
+    
+    <!-- Barra de herramientas del editor -->
+    <div id="editorToolbar" style="background: #f0f0f0; padding: 10px; border: 1px solid #ddd; border-bottom: none; border-radius: 6px 6px 0 0; display: flex; gap: 5px; flex-wrap: wrap;">
+      <button type="button" class="editor-btn" data-command="bold" title="Negrita" style="padding: 8px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-weight: bold;">B</button>
+      <button type="button" class="editor-btn" data-command="italic" title="Cursiva" style="padding: 8px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-style: italic;">I</button>
+      <button type="button" class="editor-btn" data-command="underline" title="Subrayado" style="padding: 8px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; text-decoration: underline;">U</button>
+      <div style="width: 1px; background: #ccc; margin: 0 5px;"></div>
+      <label style="display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">
+        <span style="font-size: 12px;">Color:</span>
+        <input type="color" id="colorPicker" style="width: 30px; height: 30px; border: none; cursor: pointer;">
+      </label>
+      <button type="button" id="applyColor" style="padding: 8px 12px; background: #6b0f0f; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Aplicar</button>
+      <div style="width: 1px; background: #ccc; margin: 0 5px;"></div>
+      <button type="button" class="editor-btn" data-command="justifyLeft" title="Alinear izquierda" style="padding: 8px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">⬅</button>
+      <button type="button" class="editor-btn" data-command="justifyCenter" title="Centrar" style="padding: 8px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">⬛</button>
+      <button type="button" class="editor-btn" data-command="justifyRight" title="Alinear derecha" style="padding: 8px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">➡</button>
+      <div style="width: 1px; background: #ccc; margin: 0 5px;"></div>
+      <button type="button" class="editor-btn" data-command="insertUnorderedList" title="Lista" style="padding: 8px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">•≡</button>
+      <button type="button" class="editor-btn" data-command="insertOrderedList" title="Lista numerada" style="padding: 8px 12px; background: white; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">1≡</button>
+    </div>
+    
+    <!-- Área de edición (más grande) -->
+    <div id="blogEditor" contenteditable="true" style="
+      width: 100%;
+      min-height: 400px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 0 0 6px 6px;
+      font-family: inherit;
+      font-size: 15px;
+      line-height: 1.6;
+      overflow-y: auto;
+      background: white;
+    ">Escribe aquí el contenido del blog...</div>
   </div>
   
   <button id="btnSubirMaterial" style="width: 100%; padding: 12px; background: #6b0f0f; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
