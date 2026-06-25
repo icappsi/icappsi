@@ -14,7 +14,15 @@ document.getElementById('materialTipo').addEventListener('change', function() {
 });
 
 // Subir material
+// Subir material
 document.getElementById('btnSubirMaterial').addEventListener('click', async () => {
+  // Validar que sea administrador
+  const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+  if (!usuario || usuario.nivel_acceso !== 'administrador') {
+    alert('Solo los administradores pueden subir material');
+    return;
+  }
+  
   const tipo = document.getElementById('materialTipo').value;
   const titulo = document.getElementById('materialTitulo').value.trim();
   const descripcion = document.getElementById('materialDescripcion').value.trim();
@@ -50,7 +58,10 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
         .from('material-apoyo')
         .upload(fileName, archivo);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Error subiendo archivo:', uploadError);
+        throw new Error('Error al subir el archivo: ' + uploadError.message);
+      }
       
       // Obtener URL pública del archivo
       const { data: urlData } = supabaseClient.storage
@@ -61,8 +72,6 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     }
     
     // Guardar en la base de datos
-    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-    
     const { error: dbError } = await supabaseClient
       .from('material_apoyo')
       .insert({
