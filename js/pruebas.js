@@ -42,12 +42,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 function configurarModales() {
-  document.querySelectorAll('.modal-overlay').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.style.display = 'none';
-    });
-  });
+// Cerrar modales al hacer clic fuera (EXCEPTO el modal de Crear/Editar Prueba)
+document.querySelectorAll('.modal-overlay').forEach(modal => {
+  // Excluir el modal de prueba para que no se cierre al hacer clic fuera
+  if (modal.id === 'modalPrueba') return;
   
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+});
   const safeAddListener = (id, event, handler) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener(event, handler);
