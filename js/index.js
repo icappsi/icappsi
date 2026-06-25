@@ -38,16 +38,18 @@ loginForm.addEventListener('submit', async (e) => {
     }
     
     // Guardar datos del usuario en sessionStorage
-    sessionStorage.setItem('usuario', JSON.stringify({
-      id: data.id,
-      cedula: data.cedula,
-      nombre: data.primer_nombre,
-      apellido: data.primer_apellido,
-      jerarquia: data.jerarquia,
-      nivel_acceso: data.nivel_acceso,
-      foto_url: data.foto_url
-    }));
-    
+// Guardar datos del usuario en sessionStorage
+sessionStorage.setItem('usuario', JSON.stringify({
+  id: data.id,
+  cedula: data.cedula,
+  nombre: data.primer_nombre,
+  apellido: data.primer_apellido,
+  jerarquia: data.jerarquia,
+  nivel_acceso: data.nivel_acceso,
+  foto_url: data.foto_url,
+  causa_sancion: data.causa_sancion || '',
+  numero_expediente: data.numero_expediente || ''
+}));
     mostrarMensaje('Acceso concedido. Redirigiendo...', 'exito');
     
     // Redirigir al dashboard después de 1 segundo
