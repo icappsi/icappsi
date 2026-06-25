@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ICAP - Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* --- HEADER / BARRA SUPERIOR --- */
+    .header {
+      background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 100%);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .header-logo {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: white;
+      padding: 3px;
+      object-fit: contain;
+    }
+
+    .header-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .header-title p {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: right;
+    }
+
+    .user-photo {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid white;
+      background: #ddd;
+    }
+
+    .user-info h3 { font-size: 14px; font-weight: 600; }
+    .user-info p { font-size: 11px; opacity: 0.9; }
+    .user-level {
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-logout {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 8px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn-logout:hover { background: rgba(255,255,255,0.3); }
+
+    /* --- CONTENIDO PRINCIPAL --- */
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* --- MENSAJE DE BIENVENIDA --- */
+    .welcome-banner {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      border-left: 5px solid #6b0f0f;
+    }
+
+    .welcome-banner img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+    }
+
+    .welcome-banner h2 {
+      color: #4a0404;
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+
+    .welcome-banner p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* --- NAVEGACIÓN / BOTONES --- */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      flex: 1;
+      min-width: 150px;
+      padding: 12px 20px;
+      background: white;
+      color: #4a0404;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .nav-btn:hover {
+      border-color: #8b0000;
+      background: #fff5f5;
+    }
+
+    .nav-btn.active {
+      background: #6b0f0f;
+      color: white;
+      border-color: #6b0f0f;
+      box-shadow: 0 4px 10px rgba(107, 15, 15, 0.2);
+    }
+
+    /* --- FIELDSETS (CONTENIDO) --- */
+    .content-fieldset {
+      display: none; /* Oculto por defecto */
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .content-fieldset.active {
+      display: block; /* Visible cuando está activo */
+    }
+
+    .content-fieldset legend {
+      background: #6b0f0f;
+      color: white;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    .placeholder-text {
+      text-align: center;
+      color: #888;
+      padding: 40px 20px;
+      font-size: 16px;
+    }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .user-profile { text-align: left; }
+      .nav-btn { min-width: 100%; }
+      .welcome-banner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <img src="img/logo1.png" alt="Logo" class="header-logo">
+      <div class="header-title">
+        <h1>Programa de Supervisión Intensiva</h1>
+        <p>ICAP - Cuerpo de Policía Nacional Bolivariana</p>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <div class="user-profile">
+        <img src="" alt="Foto" class="user-photo" id="userPhoto">
+        <div class="user-info">
+          <h3 id="userName">Cargando...</h3>
+          <p id="userJerarquia">-</p>
+          <span class="user-level" id="userLevel">-</span>
+        </div>
+      </div>
+      <button class="btn-logout" id="btnLogout">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="main-container">
+    
+    <!-- Bienvenida -->
+    <div class="welcome-banner">
+      <img src="img/logo1.png" alt="Logo">
+      <div>
+        <h2 id="welcomeText">Bienvenido al Sistema</h2>
+        <p>Seleccione una opción del menú para comenzar.</p>
+      </div>
+    </div>
+
+    <!-- Botones de Navegación -->
+    <nav class="nav-tabs">
+      <button class="nav-btn active" data-target="sec-material">Material de Apoyo</button>
+      <button class="nav-btn" data-target="sec-pruebas">Pruebas</button>
+      <button class="nav-btn admin-only" data-target="sec-historial">Historial</button>
+      <button class="nav-btn admin-only" data-target="sec-usuarios">Gestión de Usuarios</button>
+    </nav>
+
+    <!-- Secciones (Fieldsets) -->
+    
+    <fieldset class="content-fieldset active" id="sec-material">
+      <legend>Material de Apoyo</legend>
+      <p class="placeholder-text">Aquí se cargará el contenido de Material de Apoyo.</p>
+    </fieldset>
+
+    <fieldset class="content-fieldset" id="sec-pruebas">
+      <legend>Pruebas</legend>
+      <p class="placeholder-text">Aquí se cargará el contenido de las Pruebas.</p>
+    </fieldset>
+
+    <fieldset class="content-fieldset admin-only" id="sec-historial">
+      <legend>Historial</legend>
+      <p class="placeholder-text">Aquí se cargará el Historial de actividades (Solo Administradores).</p>
+    </fieldset>
+
+    <fieldset class="content-fieldset admin-only" id="sec-usuarios">
+      <legend>Gestión de Usuarios</legend>
+      <p class="placeholder-text">Aquí se cargará la Gestión de Usuarios (Solo Administradores).</p>
+    </fieldset>
+
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+
+</body>
+</html>
