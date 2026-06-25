@@ -689,6 +689,10 @@ async function confirmarLectura(materialId, btnElement) {
 // 8. VER CONFIRMACIONES (SOLO ADMIN)
 // ============================================
 
+// ============================================
+// 8. VER CONFIRMACIONES CON PAGINACIÓN (SOLO ADMIN)
+// ============================================
+
 async function verConfirmaciones(materialId, titulo) {
   const { data: confirmaciones, error } = await supabaseClient
     .from('confirmaciones_lectura')
@@ -705,12 +709,48 @@ async function verConfirmaciones(materialId, titulo) {
     return;
   }
   
+  const totalConfirmaciones = confirmaciones ? confirmaciones.length : 0;
+  const confirmacionesPorPagina = 10;
+  let paginaActualConf = 1;
+  const totalPaginasConf = Math.ceil(totalConfirmaciones / confirmacionesPorPagina);
+  
   const modal = document.createElement('div');
   modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;';
   
-  let listaHTML = '';
-  if (confirmaciones && confirmaciones.length > 0) {
-    confirmaciones.forEach(c => {
+  modal.innerHTML = `
+    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <h2 style="color: #4a0404; margin-bottom: 10px;">Confirmaciones de Lectura</h2>
+      <p style="color: #666; margin-bottom: 10px; font-size: 14px;">Material: <strong>${titulo}</strong></p>
+      <p style="color: #888; margin-bottom: 15px; font-size: 13px;">Total confirmaciones: ${totalConfirmaciones}</p>
+      
+      <div id="listaConfirmacionesPaginada"></div>
+      <div id="paginacionConfirmaciones" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; flex-wrap: wrap;"></div>
+      
+      <button id="btnCerrarConfirmaciones" style="width: 100%; padding: 12px; background: #888; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 20px;">
+        Cerrar
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  function renderizarPaginaConfirmaciones() {
+    const listaDiv = modal.querySelector('#listaConfirmacionesPaginada');
+    const paginacionDiv = modal.querySelector('#paginacionConfirmaciones');
+    
+    if (totalConfirmaciones === 0) {
+      listaDiv.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">Nadie ha confirmado este material aún.</p>';
+      paginacionDiv.innerHTML = '';
+      return;
+    }
+    
+    const inicio = (paginaActualConf - 1) * confirmacionesPorPagina;
+    const fin = Math.min(inicio + confirmacionesPorPagina, totalConfirmaciones);
+    const paginaConfirmaciones = confirmaciones.slice(inicio, fin);
+    
+    let listaHTML = `<p style="text-align: center; color: #666; margin-bottom: 15px; font-size: 13px;">Mostrando ${inicio + 1} - ${fin} de ${totalConfirmaciones}</p>`;
+    
+    paginaConfirmaciones.forEach(c => {
       listaHTML += `
         <div style="background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -726,25 +766,67 @@ async function verConfirmaciones(materialId, titulo) {
         </div>
       `;
     });
-  } else {
-    listaHTML = '<p style="text-align: center; color: #888; padding: 20px;">Nadie ha confirmado este material aún.</p>';
+    
+    listaDiv.innerHTML = listaHTML;
+    
+    // Renderizar controles de paginación
+    if (totalPaginasConf > 1) {
+      let paginacionHTML = `
+        <button id="btnConfAnterior" ${paginaActualConf === 1 ? 'disabled' : ''} style="padding: 8px 15px; background: ${paginaActualConf === 1 ? '#ccc' : '#6b0f0f'}; color: white; border: none; border-radius: 4px; cursor: ${paginaActualConf === 1 ? 'not-allowed' : 'pointer'}; font-weight: 600;">
+          ← Anterior
+        </button>
+      `;
+      
+      // Mostrar números de página (máximo 5 visibles)
+      let inicioPag = Math.max(1, paginaActualConf - 2);
+      let finPag = Math.min(totalPaginasConf, inicioPag + 4);
+      if (finPag - inicioPag < 4) inicioPag = Math.max(1, finPag - 4);
+      
+      for (let i = inicioPag; i <= finPag; i++) {
+        paginacionHTML += `
+          <button class="btn-num-conf" data-pagina="${i}" style="width: 35px; height: 35px; background: ${i === paginaActualConf ? '#6b0f0f' : 'white'}; color: ${i === paginaActualConf ? 'white' : '#4a0404'}; border: 2px solid #6b0f0f; border-radius: 4px; cursor: pointer; font-weight: 600;">
+            ${i}
+          </button>
+        `;
+      }
+      
+      paginacionHTML += `
+        <button id="btnConfSiguiente" ${paginaActualConf === totalPaginasConf ? 'disabled' : ''} style="padding: 8px 15px; background: ${paginaActualConf === totalPaginasConf ? '#ccc' : '#6b0f0f'}; color: white; border: none; border-radius: 4px; cursor: ${paginaActualConf === totalPaginasConf ? 'not-allowed' : 'pointer'}; font-weight: 600;">
+          Siguiente →
+        </button>
+      `;
+      
+      paginacionDiv.innerHTML = paginacionHTML;
+      
+      // Event listeners para paginación
+      modal.querySelector('#btnConfAnterior').addEventListener('click', () => {
+        if (paginaActualConf > 1) {
+          paginaActualConf--;
+          renderizarPaginaConfirmaciones();
+        }
+      });
+      
+      modal.querySelector('#btnConfSiguiente').addEventListener('click', () => {
+        if (paginaActualConf < totalPaginasConf) {
+          paginaActualConf++;
+          renderizarPaginaConfirmaciones();
+        }
+      });
+      
+      modal.querySelectorAll('.btn-num-conf').forEach(btn => {
+        btn.addEventListener('click', () => {
+          paginaActualConf = parseInt(btn.dataset.pagina);
+          renderizarPaginaConfirmaciones();
+        });
+      });
+    } else {
+      paginacionDiv.innerHTML = '';
+    }
   }
   
-  modal.innerHTML = `
-    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto;">
-      <h2 style="color: #4a0404; margin-bottom: 10px;">Confirmaciones de Lectura</h2>
-      <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Material: <strong>${titulo}</strong></p>
-      <p style="color: #888; margin-bottom: 15px; font-size: 13px;">Total confirmaciones: ${confirmaciones ? confirmaciones.length : 0}</p>
-      <div>${listaHTML}</div>
-      <button id="btnCerrarConfirmaciones" style="width: 100%; padding: 12px; background: #888; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 20px;">
-        Cerrar
-      </button>
-    </div>
-  `;
+  renderizarPaginaConfirmaciones();
   
-  document.body.appendChild(modal);
-  
-  document.getElementById('btnCerrarConfirmaciones').addEventListener('click', () => {
+  modal.querySelector('#btnCerrarConfirmaciones').addEventListener('click', () => {
     document.body.removeChild(modal);
   });
 }
