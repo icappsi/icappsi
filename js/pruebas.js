@@ -45,30 +45,52 @@ function configurarModales() {
     });
   });
   
+  // Función auxiliar para agregar event listeners de forma segura
+  const safeAddListener = (id, event, handler) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener(event, handler);
+    } else {
+      console.warn(`Elemento con ID "${id}" no encontrado`);
+    }
+  };
+  
   // Botones cancelar
-  document.getElementById('btnCancelarPrueba').addEventListener('click', () => document.getElementById('modalPrueba').style.display = 'none');
-  document.getElementById('btnCerrarGestion').addEventListener('click', () => document.getElementById('modalGestionPreguntas').style.display = 'none');
-  document.getElementById('btnCancelarPregunta').addEventListener('click', () => document.getElementById('modalPregunta').style.display = 'none');
-  document.getElementById('btnCerrarAsignar').addEventListener('click', () => document.getElementById('modalAsignarUsuarios').style.display = 'none');
-  document.getElementById('btnCerrarResultados').addEventListener('click', () => document.getElementById('modalResultados').style.display = 'none');
-  document.getElementById('btnCerrarDetalle').addEventListener('click', () => document.getElementById('modalDetalle').style.display = 'none');
+  safeAddListener('btnCancelarPrueba', 'click', () => document.getElementById('modalPrueba').style.display = 'none');
+  safeAddListener('btnCerrarGestion', 'click', () => document.getElementById('modalGestionPreguntas').style.display = 'none');
+  safeAddListener('btnCancelarPregunta', 'click', () => document.getElementById('modalPregunta').style.display = 'none');
+  safeAddListener('btnCerrarAsignar', 'click', () => document.getElementById('modalAsignarUsuarios').style.display = 'none');
+  safeAddListener('btnCerrarResultados', 'click', () => document.getElementById('modalResultados').style.display = 'none');
+  safeAddListener('btnCerrarDetalle', 'click', () => document.getElementById('modalDetalle').style.display = 'none');
   
   // Configurar eventos de tipo pregunta
-  document.getElementById('preguntaTipo').addEventListener('change', function() {
-    const tipo = this.value;
-    document.getElementById('opcionesContainer').style.display = tipo === 'opcion_multiple' ? 'block' : 'none';
-    document.getElementById('respuestaCorrectaContainer').style.display = tipo === 'verdadero_falso' ? 'block' : 'none';
-    document.getElementById('textoLibreConfig').style.display = tipo === 'texto_libre' ? 'block' : 'none';
-  });
-  
-  // Botón agregar opción
-  document.getElementById('btnAgregarOpcion').addEventListener('click', agregarOpcion);
+  const preguntaTipo = document.getElementById('preguntaTipo');
+  if (preguntaTipo) {
+    preguntaTipo.addEventListener('change', function() {
+      const tipo = this.value;
+      const opc = document.getElementById('opcionesContainer');
+      const resp = document.getElementById('respuestaCorrectaContainer');
+      const txt = document.getElementById('textoLibreConfig');
+      if (opc) opc.style.display = tipo === 'opcion_multiple' ? 'block' : 'none';
+      if (resp) resp.style.display = tipo === 'verdadero_falso' ? 'block' : 'none';
+      if (txt) txt.style.display = tipo === 'texto_libre' ? 'block' : 'none';
+    });
+  }
   
   // Botones principales
-  document.getElementById('btnGuardarPrueba').addEventListener('click', guardarPrueba);
-  document.getElementById('btnGuardarPregunta').addEventListener('click', guardarPregunta);
-  document.getElementById('btnImprimir').addEventListener('click', () => window.print());
-  document.getElementById('btnEnviarPrueba').addEventListener('click', enviarPrueba);
+  safeAddListener('btnAgregarOpcion', 'click', agregarOpcion);
+  safeAddListener('btnGuardarPrueba', 'click', guardarPrueba);
+  safeAddListener('btnGuardarPregunta', 'click', guardarPregunta);
+  safeAddListener('btnImprimir', 'click', () => window.print());
+  safeAddListener('btnEnviarPrueba', 'click', enviarPrueba);
+  
+  // Búsquedas
+  safeAddListener('buscarUsuario', 'input', (e) => filtrarUsuarios(e.target.value));
+  safeAddListener('buscarResultado', 'input', (e) => filtrarResultados(e.target.value));
+  
+  // Seleccionar/Deseleccionar todos
+  safeAddListener('btnSeleccionarTodos', 'click', seleccionarTodosUsuarios);
+  safeAddListener('btnDeseleccionarTodos', 'click', deseleccionarTodosUsuarios);
 }
 
 // ============================================
