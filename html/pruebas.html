@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pruebas - ICAP</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6f9;
+      color: #333;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 30px;
+      border-radius: 8px;
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+    
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .card {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary { background: #6b0f0f; color: white; }
+    .btn-primary:hover { background: #8b0000; }
+    .btn-secondary { background: #888; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-warning { background: #ffc107; color: #333; }
+    .btn-info { background: #0066cc; color: white; }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #4a0404;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .pagination button {
+      padding: 8px 15px;
+      background: #6b0f0f;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    .pagination button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .resultado-aprobado { color: #28a745; }
+    .resultado-reprobado { color: #dc3545; }
+    
+    /* Estilos de impresión */
+    @media print {
+      body * { visibility: hidden; }
+      .print-area, .print-area * { visibility: visible; }
+      .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+      .no-print { display: none !important; }
+      @page { margin: 1.5cm; size: A4; }
+    }
+    
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .modal-content { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header no-print">
+      <h1>Sistema de Pruebas</h1>
+      <p>Programa de Supervisión Intensiva - ICAP</p>
+    </div>
+    
+    <!-- Sección de Administración -->
+    <div id="adminPruebasSection" class="no-print" style="display: none; margin-bottom: 30px;">
+      <div class="card">
+        <button id="btnNuevaPrueba" class="btn btn-primary" style="width: 100%; margin-bottom: 20px; padding: 12px;">
+          + Crear Nueva Prueba
+        </button>
+        <div id="listaPruebasAdmin"></div>
+      </div>
+    </div>
+    
+    <!-- Sección de Usuario -->
+    <div id="listaPruebasUsuario"></div>
+  </div>
+
+  <!-- Modal: Crear/Editar Prueba -->
+  <div id="modalPrueba" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+      <h2 id="modalPruebaTitulo" style="color: #4a0404; margin-bottom: 20px;">Crear Nueva Prueba</h2>
+      
+      <div class="form-group">
+        <label>Título:</label>
+        <input type="text" id="pruebaTitulo" class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <label>Descripción:</label>
+        <textarea id="pruebaDescripcion" class="form-control" rows="3"></textarea>
+      </div>
+      
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Fecha y Hora de Inicio:</label>
+          <input type="datetime-local" id="pruebaInicio" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Fecha y Hora de Fin:</label>
+          <input type="datetime-local" id="pruebaFin" class="form-control">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Tiempo Límite (minutos, 0 = sin límite):</label>
+        <input type="number" id="pruebaTiempo" class="form-control" value="0" min="0">
+      </div>
+      
+      <div class="form-group" id="pruebaActivaGroup">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <input type="checkbox" id="pruebaActiva" style="width: 20px; height: 20px;">
+          <span>Prueba Activa</span>
+        </label>
+      </div>
+      
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button id="btnGuardarPrueba" class="btn btn-primary" style="flex: 1;">Guardar</button>
+        <button id="btnCancelarPrueba" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Gestionar Preguntas -->
+  <div id="modalGestionPreguntas" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 900px;">
+      <h2 id="tituloGestionPreguntas" style="color: #4a0404; margin-bottom: 20px;">Gestionar Preguntas</h2>
+      
+      <button id="btnAgregarPregunta" class="btn btn-primary" style="width: 100%; margin-bottom: 20px;">
+        + Agregar Pregunta
+      </button>
+      
+      <div id="contadorPreguntas" style="text-align: center; color: #666; margin-bottom: 15px; font-size: 14px;"></div>
+      <div id="listaPreguntas"></div>
+      <div id="paginacionPreguntas" class="pagination"></div>
+      
+      <button id="btnCerrarGestion" class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal: Agregar/Editar Pregunta -->
+  <div id="modalPregunta" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+      <h3 id="tituloPregunta" style="color: #4a0404; margin-bottom: 20px;">Agregar Pregunta</h3>
+      
+      <div class="form-group">
+        <label>Pregunta:</label>
+        <textarea id="preguntaTexto" class="form-control" rows="3"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>Tipo:</label>
+        <select id="preguntaTipo" class="form-control">
+          <option value="verdadero_falso">Verdadero / Falso</option>
+          <option value="opcion_multiple">Opción Múltiple</option>
+          <option value="texto_libre">Texto Libre</option>
+        </select>
+      </div>
+      
+      <div id="opcionesContainer" style="display: none;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Opciones:</label>
+        <div id="opcionesList"></div>
+        <button id="btnAgregarOpcion" class="btn btn-info" style="margin-top: 10px;">+ Agregar Opción</button>
+      </div>
+      
+      <div id="respuestaCorrectaContainer">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Respuesta Correcta:</label>
+        <select id="respuestaCorrectaVF" class="form-control">
+          <option value="verdadero">Verdadero</option>
+          <option value="falso">Falso</option>
+        </select>
+      </div>
+      
+      <div id="textoLibreConfig" style="display: none; border: 2px solid #6b0f0f; border-radius: 6px; padding: 15px; margin-top: 15px; background: #fafafa;">
+        <h4 style="color: #4a0404; margin: 0 0 10px 0;">Configuración de Evaluación</h4>
+        
+        <div class="form-group">
+          <label>Respuestas Válidas (una por línea):</label>
+          <textarea id="respuestasValidas" class="form-control" rows="4" style="font-family: monospace;"></textarea>
+          <p style="font-size: 11px; color: #888; margin-top: 5px;">Escribe diferentes formas válidas de responder.</p>
+        </div>
+        
+        <div class="form-group">
+          <label>Palabras Clave (separadas por coma):</label>
+          <input type="text" id="palabrasClave" class="form-control" placeholder="Ejemplo: caracas, capital, venezuela">
+          <p style="font-size: 11px; color: #888; margin-top: 5px;">La respuesta debe contener al menos 2 de cada 3 palabras.</p>
+        </div>
+        
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="evaluacionManual" style="width: 20px; height: 20px;">
+            <span>Requiere evaluación manual</span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Puntos:</label>
+        <input type="number" id="preguntaPuntos" class="form-control" value="1" min="1">
+      </div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button id="btnGuardarPregunta" class="btn btn-primary" style="flex: 1;">Guardar</button>
+        <button id="btnCancelarPregunta" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Asignar Usuarios -->
+  <div id="modalAsignarUsuarios" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 700px;">
+      <h2 style="color: #4a0404; margin-bottom: 20px;">Asignar Usuarios</h2>
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+        <input type="text" id="buscarUsuario" class="form-control" placeholder="🔍 Buscar por cédula, nombre o apellido..." style="flex: 1;">
+        <button id="btnSeleccionarTodos" class="btn btn-success">✅ Seleccionar Todos</button>
+        <button id="btnDeseleccionarTodos" class="btn btn-danger">❌ Deseleccionar</button>
+      </div>
+      
+      <div id="contadorAsignados" style="text-align: center; color: #666; margin-bottom: 15px;"></div>
+      <div id="listaUsuariosAsignar"></div>
+      
+      <button id="btnCerrarAsignar" class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal: Ver Resultados -->
+  <div id="modalResultados" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 1000px;">
+      <h2 id="tituloResultados" style="color: #4a0404; margin-bottom: 20px;">Resultados</h2>
+      
+      <div class="form-group">
+        <input type="text" id="buscarResultado" class="form-control" placeholder="🔍 Buscar por cédula, nombre o apellido...">
+      </div>
+      
+      <div id="contadorResultados" style="text-align: center; color: #666; margin-bottom: 15px;"></div>
+      <div id="listaResultados"></div>
+      
+      <button id="btnCerrarResultados" class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal: Ver Detalle -->
+  <div id="modalDetalle" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="color: #4a0404; margin: 0;">Detalle de Respuestas</h2>
+        <button id="btnImprimir" class="btn btn-primary">🖨️ Imprimir</button>
+      </div>
+      
+      <div class="print-area" id="printArea"></div>
+      
+      <button id="btnCerrarDetalle" class="btn btn-secondary no-print" style="width: 100%; margin-top: 20px;">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal: Realizar Prueba -->
+  <div id="modalPruebaUsuario" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 800px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 id="tituloPruebaUsuario" style="color: #4a0404; margin: 0;"></h2>
+        <div id="timer" style="font-size: 24px; font-weight: 700; color: #6b0f0f;"></div>
+      </div>
+      
+      <div id="preguntasContainer"></div>
+      
+      <button id="btnEnviarPrueba" class="btn btn-primary" style="width: 100%; margin-top: 20px; font-size: 16px; padding: 15px;">
+        Enviar Prueba
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/modal.js"></script>
+  <script src="../js/pruebas.js"></script>
+
+</body>
+</html>
