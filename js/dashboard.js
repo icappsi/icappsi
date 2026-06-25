@@ -14,9 +14,17 @@ function inicializarDashboard(user) {
   document.getElementById('userJerarquia').textContent = user.jerarquia || 'Sin jerarquía';
   document.getElementById('userLevel').textContent = user.nivel_acceso || 'Usuario';
   
-  // Mostrar número de expediente al lado del nombre
+  // Formatear número de expediente con formato ID-ZU-CPNB-XXXXX-YY
+  let expedienteTexto = '';
   if (user.numero_expediente) {
-    document.getElementById('welcomeText').textContent = `¡Bienvenido, ${user.nombre}! | Expediente: ${user.numero_expediente}`;
+    // Extraer solo los números del expediente
+    const numeros = user.numero_expediente.replace(/\D/g, '');
+    // Formatear con ceros a la izquierda (5 dígitos)
+    const numeroFormateado = numeros.padStart(5, '0');
+    // Obtener últimos 2 dígitos del año actual
+    const añoActual = new Date().getFullYear().toString().slice(-2);
+    expedienteTexto = `ID-ZU-CPNB-${numeroFormateado}-${añoActual}`;
+    document.getElementById('welcomeText').textContent = `¡Bienvenido, ${user.nombre}! | Expediente Investigado: ${expedienteTexto}`;
   } else {
     document.getElementById('welcomeText').textContent = `¡Bienvenido, ${user.nombre}!`;
   }
@@ -45,7 +53,7 @@ function inicializarDashboard(user) {
     photoImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50" y="55" font-size="40" text-anchor="middle" fill="%23888">👤</text></svg>';
   }
   
-  // 2. Control de Acceso (Ocultar elementos de administrador si es usuario normal)
+  // 2. Control de Acceso
   if (user.nivel_acceso !== 'administrador') {
     const adminElements = document.querySelectorAll('.admin-only');
     adminElements.forEach(el => {
@@ -60,12 +68,9 @@ function inicializarDashboard(user) {
   navButtons.forEach(button => {
     button.addEventListener('click', () => {
       if (button.style.display === 'none') return;
-      
       const targetId = button.getAttribute('data-target');
-      
       navButtons.forEach(btn => btn.classList.remove('active'));
       fieldsets.forEach(fs => fs.classList.remove('active'));
-      
       button.classList.add('active');
       document.getElementById(targetId).classList.add('active');
     });
