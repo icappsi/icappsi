@@ -1,4 +1,16 @@
-// Mostrar/ocultar campos según el tipo de material
+// ============================================
+// MATERIAL DE APOYO - ARCHIVO COMPLETO
+// ============================================
+
+// --- VARIABLES GLOBALES ---
+let paginaActual = 1;
+const materialesPorPagina = 10;
+let todosLosMateriales = [];
+
+// ============================================
+// 1. CONTROL DE CAMPOS SEGÚN TIPO DE MATERIAL
+// ============================================
+
 document.getElementById('materialTipo').addEventListener('change', function() {
   const tipo = this.value;
   const archivoField = document.getElementById('archivoField');
@@ -25,7 +37,11 @@ document.getElementById('materialTipo').addEventListener('change', function() {
   }
 });
 
-// Editor de texto enriquecido - Event listeners
+// ============================================
+// 2. EDITOR DE TEXTO ENRIQUECIDO
+// ============================================
+
+// Event listeners para botones del editor
 document.querySelectorAll('.editor-btn').forEach(btn => {
   btn.addEventListener('click', function(e) {
     e.preventDefault();
@@ -43,7 +59,10 @@ document.getElementById('applyColor').addEventListener('click', function(e) {
   document.getElementById('blogEditor').focus();
 });
 
-// Subir material
+// ============================================
+// 3. SUBIR MATERIAL CON CONFIRMACIÓN VISUAL
+// ============================================
+
 document.getElementById('btnSubirMaterial').addEventListener('click', async () => {
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   if (!usuario || usuario.nivel_acceso !== 'administrador') {
@@ -97,6 +116,7 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
         throw new Error('Error al subir el archivo: ' + uploadError.message);
       }
       
+      // Confirmación visual de subida exitosa
       btnSubir.textContent = '✅ Archivo subido correctamente';
       btnSubir.style.background = '#28a745';
       
@@ -126,6 +146,7 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     
     if (dbError) throw dbError;
     
+    // Confirmación final exitosa
     btnSubir.textContent = '✅ ¡Material publicado exitosamente!';
     btnSubir.style.background = '#28a745';
     
@@ -152,12 +173,10 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
   }
 });
 
-// Variables de paginación
-let paginaActual = 1;
-const materialesPorPagina = 10;
-let todosLosMateriales = [];
+// ============================================
+// 4. CARGAR MATERIALES
+// ============================================
 
-// Cargar y mostrar materiales
 async function cargarMateriales() {
   const materialList = document.getElementById('materialList');
   materialList.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">Cargando materiales...</p>';
@@ -185,7 +204,10 @@ async function cargarMateriales() {
   }
 }
 
-// Función para renderizar una página específica de materiales
+// ============================================
+// 5. RENDERIZAR MATERIALES CON PAGINACIÓN
+// ============================================
+
 function renderizarMaterialesPagina() {
   const materialList = document.getElementById('materialList');
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
@@ -220,26 +242,69 @@ function renderizarMaterialesPagina() {
     
     let contentHTML = '';
     
+    // --- BLOG CON PAGINACIÓN VISUAL ---
     if (material.tipo === 'blog') {
       const contenidoCompleto = material.contenido || '';
-      // Para blogs con HTML, paginamos por caracteres visibles
-      const textoPlano = contenidoCompleto.replace(/<[^>]*>/g, '');
-      const caracteresPorPagina = 1500;
-      const totalPaginasBlog = Math.ceil(textoPlano.length / caracteresPorPagina);
       
       contentHTML = `
-        <div class="blog-content" data-id="${material.id}" data-pagina="1" data-total="${totalPaginasBlog}">
-          <div class="blog-text" style="line-height: 1.8; text-align: justify;">${getPaginaContenidoHTML(contenidoCompleto, 1, caracteresPorPagina)}</div>
-          ${totalPaginasBlog > 1 ? `
-            <div class="pagination" style="margin-top: 15px; text-align: center;">
-              <button class="btn-prev" disabled style="padding: 8px 15px; margin: 0 5px; background: #6b0f0f; color: white; border: none; border-radius: 4px; cursor: pointer;">Anterior</button>
-              <span style="margin: 0 10px;">Página 1 de ${totalPaginasBlog}</span>
-              <button class="btn-next" style="padding: 8px 15px; margin: 0 5px; background: #6b0f0f; color: white; border: none; border-radius: 4px; cursor: pointer;">Siguiente</button>
+        <div class="blog-paginated" data-id="${material.id}" style="position: relative;">
+          <div class="blog-page-container" style="
+            max-height: 600px;
+            overflow: hidden;
+            position: relative;
+            background: #fafafa;
+            border-radius: 6px;
+            border-left: 4px solid #6b0f0f;
+            padding: 15px;
+          ">
+            <div class="blog-content-full" style="line-height: 1.8; text-align: justify;">
+              ${contenidoCompleto}
             </div>
-          ` : ''}
+          </div>
+          
+          <div class="blog-pagination-controls" style="
+            margin-top: 15px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+          ">
+            <button class="blog-btn-prev" disabled style="
+              padding: 8px 15px;
+              background: #ccc;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              cursor: not-allowed;
+              font-weight: 600;
+            ">← Anterior</button>
+            
+            <span class="blog-page-info" style="
+              padding: 8px 15px;
+              background: white;
+              border: 2px solid #6b0f0f;
+              border-radius: 4px;
+              font-weight: 600;
+              color: #4a0404;
+            ">Página 1 de 1</span>
+            
+            <button class="blog-btn-next" style="
+              padding: 8px 15px;
+              background: #6b0f0f;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              font-weight: 600;
+            ">Siguiente →</button>
+          </div>
         </div>
       `;
-    } else if (material.tipo === 'video') {
+    }
+    
+    // --- VIDEO CON REPRODUCTOR EMBEBIDO ---
+    else if (material.tipo === 'video') {
       contentHTML = `
         <div style="margin-top: 15px; background: #000; border-radius: 8px; overflow: hidden;">
           <video 
@@ -260,7 +325,10 @@ function renderizarMaterialesPagina() {
           </button>
         </div>
       `;
-    } else if (material.tipo === 'imagen') {
+    }
+    
+    // --- IMAGEN COMPLETA ---
+    else if (material.tipo === 'imagen') {
       contentHTML = `
         <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; background: #f9f9f9;">
           <img 
@@ -276,7 +344,10 @@ function renderizarMaterialesPagina() {
           </a>
         </div>
       `;
-    } else if (material.tipo === 'presentacion') {
+    }
+    
+    // --- PRESENTACIÓN POWERPOINT ---
+    else if (material.tipo === 'presentacion') {
       contentHTML = `
         <div style="margin-top: 15px; padding: 25px; background: linear-gradient(135deg, #f9f9f9 0%, #e9e9e9 100%); border-radius: 8px; text-align: center; border: 2px dashed #6b0f0f;">
           <p style="font-size: 64px; margin-bottom: 15px;">📊</p>
@@ -287,7 +358,10 @@ function renderizarMaterialesPagina() {
           </a>
         </div>
       `;
-    } else if (material.tipo === 'documento') {
+    }
+    
+    // --- DOCUMENTO (PDF u OTRO) ---
+    else if (material.tipo === 'documento') {
       const esPDF = material.archivo_url.toLowerCase().endsWith('.pdf');
       
       if (esPDF) {
@@ -318,6 +392,7 @@ function renderizarMaterialesPagina() {
       }
     }
     
+    // --- BOTONES DE ACCIÓN (SOLO ADMIN) ---
     const actionButtons = esAdmin ? `
       <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
         <button class="btn-editar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
@@ -344,15 +419,11 @@ function renderizarMaterialesPagina() {
     
     materialList.appendChild(card);
     
-    // Event listeners para paginación de blog
+    // Inicializar paginación visual para blogs
     if (material.tipo === 'blog') {
-      const blogContent = card.querySelector('.blog-content');
-      const btnPrev = card.querySelector('.btn-prev');
-      const btnNext = card.querySelector('.btn-next');
-      
-      if (btnPrev && btnNext) {
-        btnPrev.addEventListener('click', () => cambiarPagina(blogContent, -1));
-        btnNext.addEventListener('click', () => cambiarPagina(blogContent, 1));
+      const blogPaginated = card.querySelector('.blog-paginated');
+      if (blogPaginated) {
+        inicializarPaginacionBlog(blogPaginated);
       }
     }
     
@@ -371,7 +442,7 @@ function renderizarMaterialesPagina() {
     }
   });
   
-  // Controles de paginación
+  // --- CONTROLES DE PAGINACIÓN DE LISTA ---
   if (totalPaginas > 1) {
     const paginationDiv = document.createElement('div');
     paginationDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 30px; padding: 20px; flex-wrap: wrap;';
@@ -424,59 +495,88 @@ function renderizarMaterialesPagina() {
     });
   }
   
+  // Contador de materiales
   const contadorDiv = document.createElement('div');
   contadorDiv.style.cssText = 'text-align: center; color: #666; margin-top: 15px; font-size: 14px;';
   contadorDiv.textContent = `Mostrando ${inicio + 1} - ${Math.min(fin, todosLosMateriales.length)} de ${todosLosMateriales.length} materiales`;
   materialList.appendChild(contadorDiv);
 }
 
-// Función para obtener el contenido de una página específica (soporta HTML)
-function getPaginaContenidoHTML(html, pagina, caracteresPorPagina) {
-  const textoPlano = html.replace(/<[^>]*>/g, '');
-  const inicio = (pagina - 1) * caracteresPorPagina;
-  const fin = Math.min(inicio + caracteresPorPagina, textoPlano.length);
+// ============================================
+// 6. PAGINACIÓN VISUAL PARA BLOGS
+// ============================================
+
+function inicializarPaginacionBlog(blogElement) {
+  const container = blogElement.querySelector('.blog-page-container');
+  const content = blogElement.querySelector('.blog-content-full');
+  const btnPrev = blogElement.querySelector('.blog-btn-prev');
+  const btnNext = blogElement.querySelector('.blog-btn-next');
+  const pageInfo = blogElement.querySelector('.blog-page-info');
   
-  // Para simplificar, mostramos el HTML completo si es la primera página y no es muy largo
-  if (pagina === 1 && textoPlano.length <= caracteresPorPagina) {
-    return html;
+  const alturaPagina = 600; // Aproximadamente 30 líneas
+  let paginaActual = 0;
+  let totalPaginas = 1;
+  
+  function calcularPaginas() {
+    const alturaTotal = content.scrollHeight;
+    totalPaginas = Math.ceil(alturaTotal / alturaPagina);
+    
+    if (totalPaginas < 1) totalPaginas = 1;
+    
+    actualizarControles();
   }
   
-  // Si es muy largo, paginamos por texto plano (pierde formato pero es funcional)
-  return textoPlano.substring(inicio, fin);
+  function actualizarControles() {
+    pageInfo.textContent = `Página ${paginaActual + 1} de ${totalPaginas}`;
+    
+    btnPrev.disabled = paginaActual === 0;
+    btnPrev.style.background = paginaActual === 0 ? '#ccc' : '#6b0f0f';
+    btnPrev.style.cursor = paginaActual === 0 ? 'not-allowed' : 'pointer';
+    
+    btnNext.disabled = paginaActual === totalPaginas - 1;
+    btnNext.style.background = paginaActual === totalPaginas - 1 ? '#ccc' : '#6b0f0f';
+    btnNext.style.cursor = paginaActual === totalPaginas - 1 ? 'not-allowed' : 'pointer';
+    
+    // Ocultar controles si solo hay una página
+    if (totalPaginas === 1) {
+      blogElement.querySelector('.blog-pagination-controls').style.display = 'none';
+    } else {
+      blogElement.querySelector('.blog-pagination-controls').style.display = 'flex';
+    }
+  }
+  
+  function irAPagina(pagina) {
+    if (pagina < 0 || pagina >= totalPaginas) return;
+    
+    paginaActual = pagina;
+    const offset = pagina * alturaPagina;
+    content.style.transform = `translateY(-${offset}px)`;
+    content.style.transition = 'transform 0.3s ease';
+    
+    actualizarControles();
+  }
+  
+  btnPrev.addEventListener('click', () => {
+    if (paginaActual > 0) {
+      irAPagina(paginaActual - 1);
+    }
+  });
+  
+  btnNext.addEventListener('click', () => {
+    if (paginaActual < totalPaginas - 1) {
+      irAPagina(paginaActual + 1);
+    }
+  });
+  
+  setTimeout(() => {
+    calcularPaginas();
+  }, 100);
 }
 
-// Función para cambiar de página en el blog
-function cambiarPagina(blogContent, direccion) {
-  const paginaActual = parseInt(blogContent.dataset.pagina);
-  const totalPaginas = parseInt(blogContent.dataset.total);
-  const nuevaPagina = paginaActual + direccion;
-  
-  if (nuevaPagina < 1 || nuevaPagina > totalPaginas) return;
-  
-  const materialId = blogContent.dataset.id;
-  supabaseClient
-    .from('material_apoyo')
-    .select('contenido')
-    .eq('id', materialId)
-    .single()
-    .then(({ data }) => {
-      const caracteresPorPagina = 1500;
-      const blogText = blogContent.querySelector('.blog-text');
-      blogText.innerHTML = getPaginaContenidoHTML(data.contenido, nuevaPagina, caracteresPorPagina);
-      
-      blogContent.dataset.pagina = nuevaPagina;
-      
-      const btnPrev = blogContent.querySelector('.btn-prev');
-      const btnNext = blogContent.querySelector('.btn-next');
-      const pageInfo = blogContent.querySelector('.pagination span');
-      
-      btnPrev.disabled = nuevaPagina === 1;
-      btnNext.disabled = nuevaPagina === totalPaginas;
-      pageInfo.textContent = `Página ${nuevaPagina} de ${totalPaginas}`;
-    });
-}
+// ============================================
+// 7. ELIMINAR MATERIAL CON MODAL
+// ============================================
 
-// Función para eliminar material (con modal personalizado)
 async function eliminarMaterial(id, titulo) {
   const confirmado = await showConfirm(
     'Confirmar Eliminación',
@@ -523,7 +623,10 @@ async function eliminarMaterial(id, titulo) {
   }
 }
 
-// Función para editar material
+// ============================================
+// 8. EDITAR MATERIAL CON MODAL
+// ============================================
+
 async function editarMaterial(id) {
   try {
     const { data: material, error } = await supabaseClient
@@ -616,7 +719,10 @@ async function editarMaterial(id) {
   }
 }
 
-// Función para guardar los cambios de edición
+// ============================================
+// 9. GUARDAR EDICIÓN
+// ============================================
+
 async function guardarEdicion(id, materialOriginal) {
   const tipo = document.getElementById('editTipo').value;
   const titulo = document.getElementById('editTitulo').value.trim();
@@ -692,7 +798,10 @@ async function guardarEdicion(id, materialOriginal) {
   }
 }
 
-// Inicializar cuando el dashboard esté listo
+// ============================================
+// 10. INICIALIZACIÓN
+// ============================================
+
 document.addEventListener('DOMContentLoaded', () => {
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   if (usuario && usuario.nivel_acceso === 'administrador') {
