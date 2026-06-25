@@ -113,6 +113,8 @@ async function cargarMateriales() {
     }
     
     materialList.innerHTML = '';
+    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+    const esAdmin = usuario && usuario.nivel_acceso === 'administrador';
     
     materiales.forEach((material, index) => {
       const card = document.createElement('div');
@@ -158,6 +160,18 @@ async function cargarMateriales() {
         `;
       }
       
+      // Botones de acción solo para administradores
+      const actionButtons = esAdmin ? `
+        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn-editar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+            ✏️ Editar
+          </button>
+          <button class="btn-eliminar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #cc0000; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+            🗑️ Eliminar
+          </button>
+        </div>
+      ` : '';
+      
       card.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
           <span style="font-size: 24px;">${icon}</span>
@@ -168,6 +182,7 @@ async function cargarMateriales() {
         </div>
         ${material.descripcion ? `<p style="color: #666; margin-bottom: 10px;">${material.descripcion}</p>` : ''}
         ${contentHTML}
+        ${actionButtons}
       `;
       
       materialList.appendChild(card);
@@ -181,6 +196,20 @@ async function cargarMateriales() {
         if (btnPrev && btnNext) {
           btnPrev.addEventListener('click', () => cambiarPagina(blogContent, -1));
           btnNext.addEventListener('click', () => cambiarPagina(blogContent, 1));
+        }
+      }
+      
+      // Agregar event listeners para botones de editar/eliminar
+      if (esAdmin) {
+        const btnEditar = card.querySelector('.btn-editar');
+        const btnEliminar = card.querySelector('.btn-eliminar');
+        
+        if (btnEditar) {
+          btnEditar.addEventListener('click', () => editarMaterial(material.id));
+        }
+        
+        if (btnEliminar) {
+          btnEliminar.addEventListener('click', () => eliminarMaterial(material.id, material.titulo));
         }
       }
     });
@@ -230,6 +259,231 @@ function cambiarPagina(blogContent, direccion) {
       btnNext.disabled = nuevaPagina === totalPaginas;
       pageInfo.textContent = `Página ${nuevaPagina} de ${totalPaginas}`;
     });
+}
+
+// Función para eliminar material
+async function eliminarMaterial(id, titulo) {
+  if (!confirm(`¿Estás seguro de que deseas eliminar "${titulo}"? Esta acción no se puede deshacer.`)) {
+    return;
+  }
+  
+  try {
+    // Primero obtener el material para saber si tiene archivo
+    const { data: material, error: fetchError } = await supabaseClient
+      .from('material_apoyo')
+      .select('archivo_url, tipo')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) throw fetchError;
+    
+    // Si tiene archivo, eliminarlo del storage
+    if (material.archivo_url && (material.tipo === 'documento' || material.tipo === 'video')) {
+      // Extraer el nombre del archivo de la URL
+      const urlParts = material.archivo_url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      
+      const { error: storageError } = await supabaseClient.storage
+        .from('material-apoyo')
+        .remove([fileName]);
+      
+      if (storageError) {
+        console.warn('Error eliminando archivo del storage:', storageError);
+        // Continuar aunque falle la eliminación del archivo
+      }
+    }
+    
+    // Eliminar el registro de la base de datos
+    const { error: deleteError } = await supabaseClient
+      .from('material_apoyo')
+      .delete()
+      .eq('id', id);
+    
+    if (deleteError) throw deleteError;
+    
+    alert('Material eliminado exitosamente');
+    cargarMateriales(); // Recargar la lista
+    
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al eliminar el material: ' + error.message);
+  }
+}
+
+// Función para editar material
+async function editarMaterial(id) {
+  try {
+    // Obtener los datos actuales del material
+    const { data: material, error } = await supabaseClient
+      .from('material_apoyo')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    
+    // Crear modal de edición
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;';
+    
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 12px; padding: 30px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+        <h2 style="color: #4a0404; margin-bottom: 20px;">Editar Material</h2>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tipo:</label>
+          <select id="editTipo" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            <option value="documento" ${material.tipo === 'documento' ? 'selected' : ''}>Documento</option>
+            <option value="video" ${material.tipo === 'video' ? 'selected' : ''}>Video</option>
+            <option value="blog" ${material.tipo === 'blog' ? 'selected' : ''}>Blog</option>
+          </select>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Título:</label>
+          <input type="text" id="editTitulo" value="${material.titulo}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Descripción:</label>
+          <textarea id="editDescripcion" rows="2" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">${material.descripcion || ''}</textarea>
+        </div>
+        
+        <div id="editArchivoField" style="margin-bottom: 15px; ${material.tipo === 'blog' ? 'display: none;' : ''}">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Archivo (dejar vacío para mantener el actual):</label>
+          <input type="file" id="editArchivo" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+          ${material.archivo_url ? `<p style="font-size: 12px; color: #666; margin-top: 5px;">Archivo actual: <a href="${material.archivo_url}" target="_blank">Ver archivo</a></p>` : ''}
+        </div>
+        
+        <div id="editContenidoField" style="margin-bottom: 15px; ${material.tipo === 'blog' ? '' : 'display: none;'}">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Contenido del Blog:</label>
+          <textarea id="editContenido" rows="10" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit;">${material.contenido || ''}</textarea>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button id="btnGuardarEdicion" style="flex: 1; padding: 12px; background: #6b0f0f; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+            Guardar Cambios
+          </button>
+          <button id="btnCancelarEdicion" style="flex: 1; padding: 12px; background: #888; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listener para cambiar campos según tipo
+    document.getElementById('editTipo').addEventListener('change', function() {
+      const tipo = this.value;
+      const archivoField = document.getElementById('editArchivoField');
+      const contenidoField = document.getElementById('editContenidoField');
+      
+      if (tipo === 'blog') {
+        archivoField.style.display = 'none';
+        contenidoField.style.display = 'block';
+      } else {
+        archivoField.style.display = 'block';
+        contenidoField.style.display = 'none';
+      }
+    });
+    
+    // Event listener para cancelar
+    document.getElementById('btnCancelarEdicion').addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+    
+    // Event listener para guardar
+    document.getElementById('btnGuardarEdicion').addEventListener('click', async () => {
+      await guardarEdicion(id, material);
+      document.body.removeChild(modal);
+    });
+    
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al cargar el material para editar: ' + error.message);
+  }
+}
+
+// Función para guardar los cambios de edición
+async function guardarEdicion(id, materialOriginal) {
+  const tipo = document.getElementById('editTipo').value;
+  const titulo = document.getElementById('editTitulo').value.trim();
+  const descripcion = document.getElementById('editDescripcion').value.trim();
+  const archivo = document.getElementById('editArchivo').files[0];
+  const contenido = document.getElementById('editContenido').value.trim();
+  
+  if (!titulo) {
+    alert('Por favor ingresa un título');
+    return;
+  }
+  
+  if (tipo === 'blog' && !contenido) {
+    alert('Por favor ingresa el contenido del blog');
+    return;
+  }
+  
+  const btnGuardar = document.getElementById('btnGuardarEdicion');
+  btnGuardar.disabled = true;
+  btnGuardar.textContent = 'Guardando...';
+  
+  try {
+    let archivoUrl = materialOriginal.archivo_url; // Mantener el archivo actual por defecto
+    
+    // Si se seleccionó un nuevo archivo y el tipo es documento/video
+    if (archivo && (tipo === 'documento' || tipo === 'video')) {
+      // Eliminar el archivo anterior si existe
+      if (materialOriginal.archivo_url) {
+        const urlParts = materialOriginal.archivo_url.split('/');
+        const oldFileName = urlParts[urlParts.length - 1];
+        
+        await supabaseClient.storage
+          .from('material-apoyo')
+          .remove([oldFileName]);
+      }
+      
+      // Subir el nuevo archivo
+      const fileName = `${Date.now()}_${archivo.name}`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from('material-apoyo')
+        .upload(fileName, archivo);
+      
+      if (uploadError) throw uploadError;
+      
+      // Obtener URL pública del nuevo archivo
+      const { data: urlData } = supabaseClient.storage
+        .from('material-apoyo')
+        .getPublicUrl(fileName);
+      
+      archivoUrl = urlData.publicUrl;
+    }
+    
+    // Actualizar en la base de datos
+    const updateData = {
+      tipo: tipo,
+      titulo: titulo,
+      descripcion: descripcion,
+      contenido: tipo === 'blog' ? contenido : null,
+      archivo_url: (tipo === 'documento' || tipo === 'video') ? archivoUrl : null
+    };
+    
+    const { error: updateError } = await supabaseClient
+      .from('material_apoyo')
+      .update(updateData)
+      .eq('id', id);
+    
+    if (updateError) throw updateError;
+    
+    alert('Material actualizado exitosamente');
+    cargarMateriales(); // Recargar la lista
+    
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al actualizar el material: ' + error.message);
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.textContent = 'Guardar Cambios';
+  }
 }
 
 // Inicializar cuando el dashboard esté listo
