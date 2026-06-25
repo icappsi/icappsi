@@ -208,7 +208,7 @@ async function cargarMateriales() {
 // 5. RENDERIZAR MATERIALES CON PAGINACIÓN
 // ============================================
 
-function renderizarMaterialesPagina() {
+async function renderizarMaterialesPagina() {
   const materialList = document.getElementById('materialList');
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   const esAdmin = usuario && usuario.nivel_acceso === 'administrador';
@@ -217,6 +217,18 @@ function renderizarMaterialesPagina() {
   const fin = inicio + materialesPorPagina;
   const materialesPagina = todosLosMateriales.slice(inicio, fin);
   const totalPaginas = Math.ceil(todosLosMateriales.length / materialesPorPagina);
+  
+  // Cargar confirmaciones del usuario actual
+  let materialesConfirmados = [];
+  if (!esAdmin) {
+    const { data: confirmaciones } = await supabaseClient
+      .from('confirmaciones_lectura')
+      .select('material_id')
+      .eq('usuario_id', usuario.id)
+      .eq('confirmado', true);
+    
+    materialesConfirmados = confirmaciones ? confirmaciones.map(c => c.material_id) : [];
+  }
   
   materialList.innerHTML = '';
   
@@ -392,9 +404,47 @@ function renderizarMaterialesPagina() {
       }
     }
     
+    // --- BOTÓN DE CONFIRMACIÓN DE LECTURA (SOLO PARA USUARIOS) ---
+    const yaConfirmado = materialesConfirmados.includes(material.id);
+    let confirmacionHTML = '';
+    
+    if (!esAdmin) {
+      if (yaConfirmado) {
+        confirmacionHTML = `
+          <div style="margin-top: 15px; padding: 12px; background: #d4edda; border: 2px solid #28a745; border-radius: 6px; text-align: center;">
+            <p style="margin: 0; color: #155724; font-weight: 600; font-size: 14px;">
+              ✅ Confirmado - Leído/Visto correctamente
+            </p>
+          </div>
+        `;
+      } else {
+        confirmacionHTML = `
+          <div style="margin-top: 15px;">
+            <button class="btn-confirmar-lectura" data-material-id="${material.id}" style="
+              width: 100%;
+              padding: 12px;
+              background: #28a745;
+              color: white;
+              border: none;
+              border-radius: 6px;
+              font-weight: 600;
+              cursor: pointer;
+              font-size: 14px;
+              transition: all 0.3s;
+            ">
+              ✅ Confirmar que he leído/visto este material
+            </button>
+          </div>
+        `;
+      }
+    }
+    
     // --- BOTONES DE ACCIÓN (SOLO ADMIN) ---
     const actionButtons = esAdmin ? `
       <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn-ver-confirmaciones" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+          👁️ Ver Confirmaciones
+        </button>
         <button class="btn-editar" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
           ✏️ Editar
         </button>
@@ -414,6 +464,7 @@ function renderizarMaterialesPagina() {
       </div>
       ${material.descripcion ? `<p style="color: #666; margin-bottom: 10px;">${material.descripcion}</p>` : ''}
       ${contentHTML}
+      ${confirmacionHTML}
       ${actionButtons}
     `;
     
@@ -427,10 +478,25 @@ function renderizarMaterialesPagina() {
       }
     }
     
-    // Event listeners para botones de editar/eliminar
+    // Event listener para botón de confirmar lectura
+    if (!esAdmin && !yaConfirmado) {
+      const btnConfirmar = card.querySelector('.btn-confirmar-lectura');
+      if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', async () => {
+          await confirmarLectura(material.id, btnConfirmar);
+        });
+      }
+    }
+    
+    // Event listeners para botones de admin
     if (esAdmin) {
+      const btnVerConfirmaciones = card.querySelector('.btn-ver-confirmaciones');
       const btnEditar = card.querySelector('.btn-editar');
       const btnEliminar = card.querySelector('.btn-eliminar');
+      
+      if (btnVerConfirmaciones) {
+        btnVerConfirmaciones.addEventListener('click', () => verConfirmaciones(material.id, material.titulo));
+      }
       
       if (btnEditar) {
         btnEditar.addEventListener('click', () => editarMaterial(material.id));
@@ -513,7 +579,7 @@ function inicializarPaginacionBlog(blogElement) {
   const btnNext = blogElement.querySelector('.blog-btn-next');
   const pageInfo = blogElement.querySelector('.blog-page-info');
   
-  const alturaPagina = 600; // Aproximadamente 30 líneas
+  const alturaPagina = 600;
   let paginaActual = 0;
   let totalPaginas = 1;
   
@@ -537,7 +603,6 @@ function inicializarPaginacionBlog(blogElement) {
     btnNext.style.background = paginaActual === totalPaginas - 1 ? '#ccc' : '#6b0f0f';
     btnNext.style.cursor = paginaActual === totalPaginas - 1 ? 'not-allowed' : 'pointer';
     
-    // Ocultar controles si solo hay una página
     if (totalPaginas === 1) {
       blogElement.querySelector('.blog-pagination-controls').style.display = 'none';
     } else {
@@ -574,7 +639,118 @@ function inicializarPaginacionBlog(blogElement) {
 }
 
 // ============================================
-// 7. ELIMINAR MATERIAL CON MODAL
+// 7. CONFIRMAR LECTURA
+// ============================================
+
+async function confirmarLectura(materialId, btnElement) {
+  const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+  
+  const confirmado = await showConfirm(
+    'Confirmar Lectura',
+    '¿Confirmas que has leído/visto este material completamente?'
+  );
+  
+  if (!confirmado) return;
+  
+  btnElement.disabled = true;
+  btnElement.textContent = 'Confirmando...';
+  
+  try {
+    const { error } = await supabaseClient
+      .from('confirmaciones_lectura')
+      .insert({
+        material_id: materialId,
+        usuario_id: usuario.id,
+        confirmado: true
+      });
+    
+    if (error) throw error;
+    
+    // Mostrar confirmación visual
+    btnElement.parentElement.innerHTML = `
+      <div style="padding: 12px; background: #d4edda; border: 2px solid #28a745; border-radius: 6px; text-align: center;">
+        <p style="margin: 0; color: #155724; font-weight: 600; font-size: 14px;">
+          ✅ Confirmado - Leído/Visto correctamente
+        </p>
+      </div>
+    `;
+    
+    await showAlert('¡Confirmado!', 'Tu confirmación ha sido registrada exitosamente', 'success');
+    
+  } catch (error) {
+    console.error('Error:', error);
+    btnElement.disabled = false;
+    btnElement.textContent = '✅ Confirmar que he leído/visto este material';
+    await showAlert('Error', 'Error al confirmar: ' + error.message, 'error');
+  }
+}
+
+// ============================================
+// 8. VER CONFIRMACIONES (SOLO ADMIN)
+// ============================================
+
+async function verConfirmaciones(materialId, titulo) {
+  const { data: confirmaciones, error } = await supabaseClient
+    .from('confirmaciones_lectura')
+    .select(`
+      *,
+      usuarios:usuario_id (primer_nombre, primer_apellido, cedula, jerarquia)
+    `)
+    .eq('material_id', materialId)
+    .eq('confirmado', true)
+    .order('fecha_confirmacion', { ascending: false });
+  
+  if (error) {
+    await showAlert('Error', 'Error al cargar confirmaciones: ' + error.message, 'error');
+    return;
+  }
+  
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;';
+  
+  let listaHTML = '';
+  if (confirmaciones && confirmaciones.length > 0) {
+    confirmaciones.forEach(c => {
+      listaHTML += `
+        <div style="background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <p style="margin: 0; font-weight: 600;">${c.usuarios.primer_nombre} ${c.usuarios.primer_apellido}</p>
+              <p style="margin: 5px 0 0; font-size: 12px; color: #888;">Cédula: ${c.usuarios.cedula} | ${c.usuarios.jerarquia || 'Sin jerarquía'}</p>
+            </div>
+            <div style="text-align: right;">
+              <p style="margin: 0; font-size: 12px; color: #28a745; font-weight: 600;">✅ Confirmado</p>
+              <p style="margin: 5px 0 0; font-size: 11px; color: #888;">${new Date(c.fecha_confirmacion).toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  } else {
+    listaHTML = '<p style="text-align: center; color: #888; padding: 20px;">Nadie ha confirmado este material aún.</p>';
+  }
+  
+  modal.innerHTML = `
+    <div style="background: white; border-radius: 12px; padding: 30px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <h2 style="color: #4a0404; margin-bottom: 10px;">Confirmaciones de Lectura</h2>
+      <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Material: <strong>${titulo}</strong></p>
+      <p style="color: #888; margin-bottom: 15px; font-size: 13px;">Total confirmaciones: ${confirmaciones ? confirmaciones.length : 0}</p>
+      <div>${listaHTML}</div>
+      <button id="btnCerrarConfirmaciones" style="width: 100%; padding: 12px; background: #888; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 20px;">
+        Cerrar
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  document.getElementById('btnCerrarConfirmaciones').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+}
+
+// ============================================
+// 9. ELIMINAR MATERIAL CON MODAL
 // ============================================
 
 async function eliminarMaterial(id, titulo) {
@@ -624,7 +800,7 @@ async function eliminarMaterial(id, titulo) {
 }
 
 // ============================================
-// 8. EDITAR MATERIAL CON MODAL
+// 10. EDITAR MATERIAL CON MODAL
 // ============================================
 
 async function editarMaterial(id) {
@@ -720,7 +896,7 @@ async function editarMaterial(id) {
 }
 
 // ============================================
-// 9. GUARDAR EDICIÓN
+// 11. GUARDAR EDICIÓN
 // ============================================
 
 async function guardarEdicion(id, materialOriginal) {
@@ -799,7 +975,7 @@ async function guardarEdicion(id, materialOriginal) {
 }
 
 // ============================================
-// 10. INICIALIZACIÓN
+// 12. INICIALIZACIÓN
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
