@@ -17,10 +17,30 @@ document.getElementById('materialTipo').addEventListener('change', function() {
       archivoInput.accept = 'image/*';
     } else if (tipo === 'video') {
       archivoInput.accept = 'video/*';
+    } else if (tipo === 'presentacion') {
+      archivoInput.accept = '.ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation';
     } else {
       archivoInput.accept = '*/*';
     }
   }
+});
+
+// Editor de texto enriquecido - Event listeners
+document.querySelectorAll('.editor-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    const command = this.dataset.command;
+    document.execCommand(command, false, null);
+    document.getElementById('blogEditor').focus();
+  });
+});
+
+// Aplicar color
+document.getElementById('applyColor').addEventListener('click', function(e) {
+  e.preventDefault();
+  const color = document.getElementById('colorPicker').value;
+  document.execCommand('foreColor', false, color);
+  document.getElementById('blogEditor').focus();
 });
 
 // Subir material
@@ -35,19 +55,19 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
   const titulo = document.getElementById('materialTitulo').value.trim();
   const descripcion = document.getElementById('materialDescripcion').value.trim();
   const archivo = document.getElementById('materialArchivo').files[0];
-  const contenido = document.getElementById('materialContenido').value.trim();
+  const contenido = document.getElementById('blogEditor').innerHTML.trim();
   
   if (!titulo) {
     await showAlert('Campo Requerido', 'Por favor ingresa un título', 'warning');
     return;
   }
   
-  if ((tipo === 'documento' || tipo === 'video' || tipo === 'imagen') && !archivo) {
+  if ((tipo === 'documento' || tipo === 'video' || tipo === 'imagen' || tipo === 'presentacion') && !archivo) {
     await showAlert('Campo Requerido', 'Por favor selecciona un archivo', 'warning');
     return;
   }
   
-  if (tipo === 'blog' && !contenido) {
+  if (tipo === 'blog' && (!contenido || contenido === '<div>Escribe aquí el contenido del blog...</div>')) {
     await showAlert('Campo Requerido', 'Por favor ingresa el contenido del blog', 'warning');
     return;
   }
@@ -59,8 +79,8 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
   try {
     let archivoUrl = null;
     
-    // Si es documento, video o imagen, subir el archivo primero
-    if (tipo === 'documento' || tipo === 'video' || tipo === 'imagen') {
+    // Si es documento, video, imagen o presentacion, subir el archivo
+    if (tipo === 'documento' || tipo === 'video' || tipo === 'imagen' || tipo === 'presentacion') {
       const fileName = `${Date.now()}_${archivo.name}`;
       
       btnSubir.textContent = 'Subiendo archivo...';
@@ -77,7 +97,6 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
         throw new Error('Error al subir el archivo: ' + uploadError.message);
       }
       
-      // ✅ CONFIRMACIÓN VISUAL DE SUBIDA EXITOSA
       btnSubir.textContent = '✅ Archivo subido correctamente';
       btnSubir.style.background = '#28a745';
       
@@ -107,7 +126,6 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     
     if (dbError) throw dbError;
     
-    // ✅ CONFIRMACIÓN FINAL EXITOSA
     btnSubir.textContent = '✅ ¡Material publicado exitosamente!';
     btnSubir.style.background = '#28a745';
     
@@ -115,9 +133,8 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
     document.getElementById('materialTitulo').value = '';
     document.getElementById('materialDescripcion').value = '';
     document.getElementById('materialArchivo').value = '';
-    document.getElementById('materialContenido').value = '';
+    document.getElementById('blogEditor').innerHTML = 'Escribe aquí el contenido del blog...';
     
-    // Mostrar modal de éxito
     setTimeout(async () => {
       await showAlert('¡Éxito!', 'El material se ha publicado correctamente', 'success');
       cargarMateriales();
@@ -196,19 +213,23 @@ function renderizarMaterialesPagina() {
     } else if (material.tipo === 'imagen') {
       icon = '🖼️';
       tipoTexto = 'Imagen';
+    } else if (material.tipo === 'presentacion') {
+      icon = '📊';
+      tipoTexto = 'Presentación';
     }
     
     let contentHTML = '';
     
     if (material.tipo === 'blog') {
       const contenidoCompleto = material.contenido || '';
-      const palabras = contenidoCompleto.split(' ');
-      const palabrasPorPagina = 200;
-      const totalPaginasBlog = Math.ceil(palabras.length / palabrasPorPagina);
+      // Para blogs con HTML, paginamos por caracteres visibles
+      const textoPlano = contenidoCompleto.replace(/<[^>]*>/g, '');
+      const caracteresPorPagina = 1500;
+      const totalPaginasBlog = Math.ceil(textoPlano.length / caracteresPorPagina);
       
       contentHTML = `
         <div class="blog-content" data-id="${material.id}" data-pagina="1" data-total="${totalPaginasBlog}">
-          <div class="blog-text" style="line-height: 1.6; text-align: justify;">${getPaginaContenido(contenidoCompleto, 1, palabrasPorPagina)}</div>
+          <div class="blog-text" style="line-height: 1.8; text-align: justify;">${getPaginaContenidoHTML(contenidoCompleto, 1, caracteresPorPagina)}</div>
           ${totalPaginasBlog > 1 ? `
             <div class="pagination" style="margin-top: 15px; text-align: center;">
               <button class="btn-prev" disabled style="padding: 8px 15px; margin: 0 5px; background: #6b0f0f; color: white; border: none; border-radius: 4px; cursor: pointer;">Anterior</button>
@@ -240,7 +261,6 @@ function renderizarMaterialesPagina() {
         </div>
       `;
     } else if (material.tipo === 'imagen') {
-      // 🖼️ IMAGEN COMPLETA MOSTRADA DIRECTAMENTE
       contentHTML = `
         <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; background: #f9f9f9;">
           <img 
@@ -253,6 +273,17 @@ function renderizarMaterialesPagina() {
         <div style="margin-top: 10px;">
           <a href="${material.archivo_url}" download style="display: inline-block; padding: 8px 15px; background: #6b0f0f; color: white; text-decoration: none; border-radius: 6px; font-size: 13px;">
             ⬇️ Descargar Imagen
+          </a>
+        </div>
+      `;
+    } else if (material.tipo === 'presentacion') {
+      contentHTML = `
+        <div style="margin-top: 15px; padding: 25px; background: linear-gradient(135deg, #f9f9f9 0%, #e9e9e9 100%); border-radius: 8px; text-align: center; border: 2px dashed #6b0f0f;">
+          <p style="font-size: 64px; margin-bottom: 15px;">📊</p>
+          <p style="color: #4a0404; font-size: 16px; font-weight: 600; margin-bottom: 10px;">Presentación de PowerPoint</p>
+          <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Haz clic para descargar y visualizar la presentación</p>
+          <a href="${material.archivo_url}" download style="display: inline-block; padding: 14px 30px; background: #6b0f0f; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 10px rgba(107, 15, 15, 0.3);">
+            ⬇️ Descargar Presentación
           </a>
         </div>
       `;
@@ -399,12 +430,19 @@ function renderizarMaterialesPagina() {
   materialList.appendChild(contadorDiv);
 }
 
-// Función para obtener el contenido de una página específica
-function getPaginaContenido(texto, pagina, palabrasPorPagina) {
-  const palabras = texto.split(' ');
-  const inicio = (pagina - 1) * palabrasPorPagina;
-  const fin = inicio + palabrasPorPagina;
-  return palabras.slice(inicio, fin).join(' ');
+// Función para obtener el contenido de una página específica (soporta HTML)
+function getPaginaContenidoHTML(html, pagina, caracteresPorPagina) {
+  const textoPlano = html.replace(/<[^>]*>/g, '');
+  const inicio = (pagina - 1) * caracteresPorPagina;
+  const fin = Math.min(inicio + caracteresPorPagina, textoPlano.length);
+  
+  // Para simplificar, mostramos el HTML completo si es la primera página y no es muy largo
+  if (pagina === 1 && textoPlano.length <= caracteresPorPagina) {
+    return html;
+  }
+  
+  // Si es muy largo, paginamos por texto plano (pierde formato pero es funcional)
+  return textoPlano.substring(inicio, fin);
 }
 
 // Función para cambiar de página en el blog
@@ -422,9 +460,9 @@ function cambiarPagina(blogContent, direccion) {
     .eq('id', materialId)
     .single()
     .then(({ data }) => {
-      const palabrasPorPagina = 200;
+      const caracteresPorPagina = 1500;
       const blogText = blogContent.querySelector('.blog-text');
-      blogText.textContent = getPaginaContenido(data.contenido, nuevaPagina, palabrasPorPagina);
+      blogText.innerHTML = getPaginaContenidoHTML(data.contenido, nuevaPagina, caracteresPorPagina);
       
       blogContent.dataset.pagina = nuevaPagina;
       
@@ -456,7 +494,7 @@ async function eliminarMaterial(id, titulo) {
     
     if (fetchError) throw fetchError;
     
-    if (material.archivo_url && (material.tipo === 'documento' || material.tipo === 'video' || material.tipo === 'imagen')) {
+    if (material.archivo_url && (material.tipo === 'documento' || material.tipo === 'video' || material.tipo === 'imagen' || material.tipo === 'presentacion')) {
       const urlParts = material.archivo_url.split('/');
       const fileName = urlParts[urlParts.length - 1];
       
@@ -500,7 +538,7 @@ async function editarMaterial(id) {
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;';
     
     modal.innerHTML = `
-      <div style="background: white; border-radius: 12px; padding: 30px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <div style="background: white; border-radius: 12px; padding: 30px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto;">
         <h2 style="color: #4a0404; margin-bottom: 20px;">Editar Material</h2>
         
         <div style="margin-bottom: 15px;">
@@ -509,6 +547,7 @@ async function editarMaterial(id) {
             <option value="documento" ${material.tipo === 'documento' ? 'selected' : ''}>Documento</option>
             <option value="video" ${material.tipo === 'video' ? 'selected' : ''}>Video</option>
             <option value="imagen" ${material.tipo === 'imagen' ? 'selected' : ''}>Imagen</option>
+            <option value="presentacion" ${material.tipo === 'presentacion' ? 'selected' : ''}>Presentación</option>
             <option value="blog" ${material.tipo === 'blog' ? 'selected' : ''}>Blog</option>
           </select>
         </div>
@@ -531,7 +570,8 @@ async function editarMaterial(id) {
         
         <div id="editContenidoField" style="margin-bottom: 15px; ${material.tipo === 'blog' ? '' : 'display: none;'}">
           <label style="display: block; margin-bottom: 5px; font-weight: 600;">Contenido del Blog:</label>
-          <textarea id="editContenido" rows="10" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit;">${material.contenido || ''}</textarea>
+          <textarea id="editContenido" rows="15" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit;">${material.contenido || ''}</textarea>
+          <p style="font-size: 11px; color: #888; margin-top: 5px;">Nota: El contenido HTML se edita directamente aquí</p>
         </div>
         
         <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -601,7 +641,7 @@ async function guardarEdicion(id, materialOriginal) {
   try {
     let archivoUrl = materialOriginal.archivo_url;
     
-    if (archivo && (tipo === 'documento' || tipo === 'video' || tipo === 'imagen')) {
+    if (archivo && (tipo === 'documento' || tipo === 'video' || tipo === 'imagen' || tipo === 'presentacion')) {
       if (materialOriginal.archivo_url) {
         const urlParts = materialOriginal.archivo_url.split('/');
         const oldFileName = urlParts[urlParts.length - 1];
@@ -630,7 +670,7 @@ async function guardarEdicion(id, materialOriginal) {
       titulo: titulo,
       descripcion: descripcion,
       contenido: tipo === 'blog' ? contenido : null,
-      archivo_url: (tipo === 'documento' || tipo === 'video' || tipo === 'imagen') ? archivoUrl : null
+      archivo_url: (tipo === 'documento' || tipo === 'video' || tipo === 'imagen' || tipo === 'presentacion') ? archivoUrl : null
     };
     
     const { error: updateError } = await supabaseClient
