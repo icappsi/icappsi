@@ -272,11 +272,54 @@
 
     <!-- Secciones (Fieldsets) -->
     
-    <fieldset class="content-fieldset active" id="sec-material">
-      <legend>Material de Apoyo</legend>
-      <p class="placeholder-text">Aquí se cargará el contenido de Material de Apoyo.</p>
-    </fieldset>
-
+  <fieldset class="content-fieldset active" id="sec-material">
+  <legend>Material de Apoyo</legend>
+  
+  <!-- Formulario de subida (solo visible para administradores) -->
+  <div id="uploadSection" class="admin-only" style="display: none; margin-bottom: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px; border: 2px dashed #6b0f0f;">
+    <h3 style="color: #4a0404; margin-bottom: 15px;">Subir Nuevo Material</h3>
+    
+    <div style="margin-bottom: 15px;">
+      <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tipo de Material:</label>
+      <select id="materialTipo" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+        <option value="documento">Documento (PDF, Word, etc.)</option>
+        <option value="video">Video</option>
+        <option value="blog">Entrada de Blog (Texto)</option>
+      </select>
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+      <label style="display: block; margin-bottom: 5px; font-weight: 600;">Título:</label>
+      <input type="text" id="materialTitulo" placeholder="Título del material" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+      <label style="display: block; margin-bottom: 5px; font-weight: 600;">Descripción (opcional):</label>
+      <textarea id="materialDescripcion" placeholder="Breve descripción" rows="2" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
+    </div>
+    
+    <!-- Campo para archivos (documento/video) -->
+    <div id="archivoField" style="margin-bottom: 15px;">
+      <label style="display: block; margin-bottom: 5px; font-weight: 600;">Archivo:</label>
+      <input type="file" id="materialArchivo" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    
+    <!-- Campo para contenido de blog -->
+    <div id="contenidoField" style="margin-bottom: 15px; display: none;">
+      <label style="display: block; margin-bottom: 5px; font-weight: 600;">Contenido del Blog:</label>
+      <textarea id="materialContenido" placeholder="Escribe aquí el contenido del blog..." rows="8" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit;"></textarea>
+    </div>
+    
+    <button id="btnSubirMaterial" style="width: 100%; padding: 12px; background: #6b0f0f; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+      Publicar Material
+    </button>
+  </div>
+  
+  <!-- Lista de materiales -->
+  <div id="materialList">
+    <p style="text-align: center; color: #888; padding: 20px;">Cargando materiales...</p>
+  </div>
+</fieldset>
     <fieldset class="content-fieldset" id="sec-pruebas">
       <legend>Pruebas</legend>
       <p class="placeholder-text">Aquí se cargará el contenido de las Pruebas.</p>
