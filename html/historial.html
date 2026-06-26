@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historial - ICAP</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f4f6f9;
+  color: #333;
+  min-height: 100vh;
+}
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.header {
+  background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 100%);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 30px;
+  border-radius: 8px;
+}
+.header h1 { font-size: 24px; margin-bottom: 5px; }
+.header p { font-size: 14px; opacity: 0.9; }
+
+/* Tarjetas de estadísticas */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-left: 5px solid #6b0f0f;
+  transition: transform 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+}
+.stat-card .icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+.stat-card .value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #4a0404;
+  margin-bottom: 5px;
+}
+.stat-card .label {
+  font-size: 13px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.stat-card.pruebas { border-left-color: #6b0f0f; }
+.stat-card.aprobados { border-left-color: #28a745; }
+.stat-card.reprobados { border-left-color: #dc3545; }
+.stat-card.confirmaciones { border-left-color: #0066cc; }
+.stat-card.usuarios { border-left-color: #ffc107; }
+.stat-card.materiales { border-left-color: #17a2b8; }
+
+/* Sección de categorías */
+.section-title {
+  color: #4a0404;
+  font-size: 20px;
+  margin: 30px 0 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #6b0f0f;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Tarjetas de categorías de material */
+.categorias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+.categoria-card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  border-top: 4px solid #6b0f0f;
+}
+.categoria-card .emoji {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+.categoria-card .count {
+  font-size: 28px;
+  font-weight: 700;
+  color: #4a0404;
+  margin-bottom: 5px;
+}
+.categoria-card .name {
+  font-size: 13px;
+  color: #666;
+  font-weight: 600;
+}
+
+/* Tabla de usuarios */
+.tabla-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow-x: auto;
+}
+.tabla-usuarios {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.tabla-usuarios thead {
+  background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 100%);
+  color: white;
+}
+.tabla-usuarios th {
+  padding: 12px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.tabla-usuarios td {
+  padding: 10px;
+  border-bottom: 1px solid #e0e0e0;
+  vertical-align: middle;
+}
+.tabla-usuarios tbody tr:hover {
+  background: #fff5f5;
+}
+.tabla-usuarios tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+.tabla-usuarios tbody tr:nth-child(even):hover {
+  background: #fff5f5;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-aprobado { background: #d4edda; color: #155724; }
+.badge-reprobado { background: #f8d7da; color: #721c24; }
+.badge-sin-pruebas { background: #e2e3e5; color: #383d41; }
+.badge-admin { background: #6b0f0f; color: white; }
+.badge-usuario { background: #0066cc; color: white; }
+
+/* Foto */
+.foto-mini {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #6b0f0f;
+  background: #ddd;
+}
+.foto-placeholder {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 2px solid #6b0f0f;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+/* Puntuación */
+.puntuacion-alta { color: #28a745; font-weight: 700; }
+.puntuacion-media { color: #ffc107; font-weight: 700; }
+.puntuacion-baja { color: #dc3545; font-weight: 700; }
+
+/* Paginación */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.pagination button {
+  padding: 8px 15px;
+  background: #6b0f0f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.pagination button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+.pagination .page-num {
+  width: 35px;
+  height: 35px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pagination .page-num.active {
+  background: #4a0404;
+  border: 2px solid #4a0404;
+}
+
+/* Buscador */
+.buscador-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.buscador {
+  flex: 1;
+  min-width: 250px;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.buscador:focus {
+  outline: none;
+  border-color: #6b0f0f;
+}
+.btn-refrescar {
+  padding: 10px 20px;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-refrescar:hover {
+  background: #0052a3;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .categorias-grid { grid-template-columns: 1fr 1fr; }
+  .stat-card .value { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>📊 Historial General del Sistema</h1>
+    <p>Programa de Supervisión Intensiva - ICAP</p>
+  </div>
+
+  <!-- Estadísticas Principales -->
+  <div class="stats-grid">
+    <div class="stat-card pruebas">
+      <div class="icon">📝</div>
+      <div class="value" id="statPruebas">0</div>
+      <div class="label">Pruebas Creadas</div>
+    </div>
+    <div class="stat-card aprobados">
+      <div class="icon">✅</div>
+      <div class="value" id="statAprobados">0</div>
+      <div class="label">Pruebas Aprobadas</div>
+    </div>
+    <div class="stat-card reprobados">
+      <div class="icon">❌</div>
+      <div class="value" id="statReprobados">0</div>
+      <div class="label">Pruebas Reprobadas</div>
+    </div>
+    <div class="stat-card confirmaciones">
+      <div class="icon">👁️</div>
+      <div class="value" id="statConfirmaciones">0</div>
+      <div class="label">Confirmaciones de Lectura</div>
+    </div>
+    <div class="stat-card usuarios">
+      <div class="icon">👥</div>
+      <div class="value" id="statUsuarios">0</div>
+      <div class="label">Usuarios Registrados</div>
+    </div>
+    <div class="stat-card materiales">
+      <div class="icon">📚</div>
+      <div class="value" id="statMateriales">0</div>
+      <div class="label">Materiales Publicados</div>
+    </div>
+  </div>
+
+  <!-- Categorías de Material -->
+  <h2 class="section-title">📦 Confirmaciones por Tipo de Material</h2>
+  <div class="categorias-grid">
+    <div class="categoria-card">
+      <div class="emoji">📄</div>
+      <div class="count" id="catDocumentos">0</div>
+      <div class="name">Documentos</div>
+    </div>
+    <div class="categoria-card">
+      <div class="emoji">🎥</div>
+      <div class="count" id="catVideos">0</div>
+      <div class="name">Videos</div>
+    </div>
+    <div class="categoria-card">
+      <div class="emoji">🖼️</div>
+      <div class="count" id="catImagenes">0</div>
+      <div class="name">Imágenes</div>
+    </div>
+    <div class="categoria-card">
+      <div class="emoji">📊</div>
+      <div class="count" id="catPresentaciones">0</div>
+      <div class="name">Presentaciones</div>
+    </div>
+    <div class="categoria-card">
+      <div class="emoji">📝</div>
+      <div class="count" id="catBlogs">0</div>
+      <div class="name">Blogs</div>
+    </div>
+  </div>
+
+  <!-- Tabla de Usuarios -->
+  <h2 class="section-title">👥 Detalle de Usuarios y su Rendimiento</h2>
+  <div class="tabla-container">
+    <div class="buscador-container">
+      <input type="text" id="buscadorUsuarios" class="buscador" placeholder="🔍 Buscar por cédula, nombre, apellido o expediente...">
+      <button class="btn-refrescar" onclick="cargarDatos()">🔄 Refrescar</button>
+    </div>
+    
+    <div id="contadorUsuarios" style="text-align: center; color: #666; margin-bottom: 15px; font-size: 14px;"></div>
+    
+    <table class="tabla-usuarios">
+      <thead>
+        <tr>
+          <th>Foto</th>
+          <th>Cédula</th>
+          <th>Nombre Completo</th>
+          <th>Jerarquía</th>
+          <th>Nivel</th>
+          <th>N° Expediente</th>
+          <th>Pruebas Realizadas</th>
+          <th>Aprobadas</th>
+          <th>Reprobadas</th>
+          <th>Mejor Puntuación</th>
+          <th>Confirmaciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaUsuariosBody">
+        <tr>
+          <td colspan="11" class="loading">Cargando datos...</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div id="paginacionUsuarios" class="pagination"></div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/historial.js"></script>
+</body>
+</html>
