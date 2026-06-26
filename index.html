@@ -3,119 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ICAP - Acceso Restringido</title>
+  <title>ICAP - Sistema de Supervisión Intensiva</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
-  
   <style>
-    /* --- ESTILOS CSS INTEGRADOS --- */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #ffffff;
+      background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 100%);
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 20px;
-      position: relative;
-      overflow-x: hidden;
     }
-
-    /* --- MARCA DE AGUA (CUBRE TODA LA PANTALLA) --- */
-    .watermark {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover; /* Hace que la imagen cubra toda la pantalla */
-      opacity: 0.05; /* Opacidad muy baja para que sea sutil */
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* --- CONTENEDOR DEL LOGIN --- */
     .login-container {
+      background: white;
+      border-radius: 15px;
+      padding: 40px;
+      max-width: 450px;
       width: 100%;
-      max-width: 420px;
-      position: relative;
-      z-index: 1;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
-
-    .login-box {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 35px 30px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-      border-top: 5px solid #6b0f0f;
-      text-align: center;
-    }
-
-    /* --- LOGO SUPERIOR (MÁS GRANDE) --- */
     .logo-container {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo-container img {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
       margin-bottom: 15px;
     }
-
-    .logo {
-      max-width: 140px; /* Más grande que antes (era 90px) */
-      height: auto;
-    }
-
-    /* --- TÍTULOS --- */
-    h1 {
+    .logo-container h1 {
       color: #4a0404;
       font-size: 22px;
-      font-weight: 700;
       margin-bottom: 5px;
-      line-height: 1.2;
     }
-
-    .subtitle {
-      color: #888888; /* Gris más claro */
+    .logo-container p {
+      color: #666;
       font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 25px;
     }
-
-    /* --- FORMULARIO --- */
     .form-group {
       margin-bottom: 20px;
-      text-align: left;
     }
-
-    label {
+    .form-group label {
       display: block;
-      color: #4a0404;
       margin-bottom: 8px;
       font-weight: 600;
+      color: #4a0404;
       font-size: 14px;
     }
-
-    input {
+    .form-group input {
       width: 100%;
-      padding: 12px 15px;
+      padding: 12px;
       border: 2px solid #e0e0e0;
       border-radius: 8px;
-      font-size: 16px;
-      transition: all 0.3s ease;
-      background-color: #fafafa;
+      font-size: 15px;
+      transition: border-color 0.3s;
     }
-
-    input:focus {
+    .form-group input:focus {
       outline: none;
-      border-color: #8b0000;
-      background-color: #ffffff;
-      box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+      border-color: #6b0f0f;
     }
-
+    #passwordGroup {
+      display: none;
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
     .btn-login {
       width: 100%;
       padding: 14px;
@@ -126,144 +83,79 @@
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      transition: background 0.3s;
     }
-
-    .btn-login:hover {
-      background: #8b0000;
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(139, 0, 0, 0.2);
-    }
-
-    .btn-login:active {
-      transform: translateY(0);
-    }
-
-    /* --- MENSAJES --- */
+    .btn-login:hover { background: #8b0000; }
+    .btn-login:disabled { background: #ccc; cursor: not-allowed; }
     .mensaje {
-      margin-top: 15px;
+      margin-top: 20px;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       text-align: center;
       font-size: 14px;
-      font-weight: 500;
       display: none;
     }
-
     .mensaje.error {
-      background: #ffe6e6;
-      color: #cc0000;
-      border: 1px solid #ffcccc;
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
       display: block;
     }
-
     .mensaje.exito {
-      background: #e6ffe6;
-      color: #008000;
-      border: 1px solid #ccffcc;
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
       display: block;
     }
-
-    /* --- FOOTER (DEBAJO DEL BOTÓN) --- */
-    .footer-info {
-      margin-top: 25px;
-      padding-top: 20px;
-      border-top: 1px solid #e0e0e0;
-      text-align: center;
+    .mensaje.info {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+      display: block;
     }
-
-    .footer-info p {
+    .security-notice {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-left: 3px solid #6b0f0f;
+      border-radius: 4px;
       font-size: 12px;
-      color: #666666;
-      margin: 5px 0;
-      line-height: 1.4;
-    }
-
-    .footer-info .copyright {
-      font-size: 11px;
-      color: #999999;
-      margin-top: 10px;
-    }
-
-    /* --- RESPONSIVE PARA CELULARES --- */
-    @media (max-width: 480px) {
-      body {
-        padding: 15px;
-      }
-      
-      .login-box {
-        padding: 30px 20px;
-      }
-      
-      h1 {
-        font-size: 19px;
-      }
-
-      .subtitle {
-        font-size: 11px;
-      }
-
-      .logo {
-        max-width: 120px; /* Ajustado para móviles */
-      }
+      color: #666;
     }
   </style>
 </head>
 <body>
-
-  <!-- Marca de agua que cubre toda la pantalla -->
-  <img src="img/logo2.png" alt="Marca de agua" class="watermark">
-
   <div class="login-container">
-    <div class="login-box">
-      
-      <!-- Logo principal más grande -->
-      <div class="logo-container">
-        <img src="img/logo1.png" alt="Logo ICAP" class="logo">
+    <div class="logo-container">
+      <img src="img/logo1.png" alt="Logo ICAP">
+      <h1>Programa de Supervisión Intensiva</h1>
+      <p>ICAP - Cuerpo de Policía Nacional Bolivariana</p>
+    </div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="cedula">🆔 Cédula:</label>
+        <input type="text" id="cedula" placeholder="Ingrese su cédula" required maxlength="8" inputmode="numeric">
       </div>
       
-      <!-- Títulos -->
-      <h1>Programa de Supervisión Intensiva</h1>
-      <p class="subtitle">ICAP Acceso Restringido</p>
+      <div class="form-group" id="passwordGroup">
+        <label for="password">🔐 Contraseña de Administrador:</label>
+        <input type="password" id="password" placeholder="Ingrese su contraseña">
+      </div>
       
-      <form id="loginForm">
-        <div class="form-group">
-          <label for="cedula">Ingrese Número de Cédula</label>
-          <input 
-            type="text" 
-            id="cedula" 
-            name="cedula" 
-            placeholder="Ingrese su número de cédula"
-            inputmode="numeric"
-            pattern="[0-9]*"
-            required
-            autocomplete="off"
-          >
-        </div>
-        
-        <button type="submit" class="btn-login" id="btnIngresar">Ingresar</button>
-        
-        <div id="mensaje" class="mensaje"></div>
-        
-        <!-- Footer con información institucional -->
-        <div class="footer-info">
-          <p><strong>ICAP del Cuerpo de Policía Nacional Bolivariana</strong></p>
-          <p class="copyright">© Desarrollado por OTIC ZULIA</p>
-        </div>
-      </form>
-    </div>
+      <button type="submit" class="btn-login" id="btnIngresar">Ingresar</button>
+      
+      <div id="mensaje" class="mensaje"></div>
+      
+      <div class="security-notice">
+        🔒 <strong>Seguridad:</strong> Los administradores deben ingresar su contraseña para acceder al sistema.
+      </div>
+    </form>
   </div>
-  
-  <!-- Librería de Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Configuración de Supabase (DEBE IR PRIMERO) -->
-  <script src="js/config.js"></script>
-  
-  <!-- Tu archivo JS principal -->
-  <script src="js/index.js"></script>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/seguridad.js"></script>
+  <script src="js/index.js"></script>
 </body>
 </html>
