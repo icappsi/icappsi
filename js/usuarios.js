@@ -61,13 +61,6 @@ function configurarEventos() {
     document.getElementById('modalEliminar').style.display = 'none';
   });
   
-  // Cerrar modales al hacer clic fuera
-  document.querySelectorAll('.modal-overlay').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.style.display = 'none';
-    });
-  });
-  
   // Validación de cédula: solo 7-8 dígitos numéricos
   const inputCedula = document.getElementById('usuarioCedula');
   inputCedula.addEventListener('input', (e) => {
@@ -148,6 +141,8 @@ function renderizarTabla() {
   const fin = Math.min(inicio + usuariosPorPagina, total);
   const pagina = usuariosFiltrados.slice(inicio, fin);
   
+  const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
+  
   document.getElementById('contadorUsuarios').textContent = 
     `Mostrando ${total > 0 ? inicio + 1 : 0} - ${fin} de ${total} usuarios`;
   
@@ -182,6 +177,35 @@ function renderizarTabla() {
     
     const expediente = u.numero_expediente || '<span style="color:#888;">-</span>';
     
+    // DETERMINAR SI EL ADMIN LOGUEADO PUEDE EDITAR/ELIMINAR ESTE USUARIO
+    let puedeEditar = false;
+    let puedeEliminar = false;
+    
+    if (usuarioLogueado.es_super_admin) {
+      // Super Admin puede editar/eliminar cualquier usuario
+      puedeEditar = true;
+      puedeEliminar = true;
+    } else {
+      // Admin normal solo puede editar/eliminar usuarios normales
+      if (u.nivel_acceso === 'usuario') {
+        puedeEditar = true;
+        puedeEliminar = true;
+      }
+    }
+    
+    // Generar botones de acción según permisos
+    let botonesHTML = '<div style="display: flex; gap: 5px;">';
+    
+    if (puedeEditar) {
+      botonesHTML += `<button class="btn btn-info btn-editar" data-id="${u.id}" style="padding: 6px 10px; font-size: 12px;">✏️</button>`;
+    }
+    
+    if (puedeEliminar) {
+      botonesHTML += `<button class="btn btn-danger btn-eliminar" data-id="${u.id}" data-nombre="${u.primer_nombre} ${u.primer_apellido}" style="padding: 6px 10px; font-size: 12px;">🗑️</button>`;
+    }
+    
+    botonesHTML += '</div>';
+    
     tr.innerHTML = `
       <td>${fotoHTML}</td>
       <td><strong>${u.cedula}</strong></td>
@@ -191,16 +215,12 @@ function renderizarTabla() {
       <td style="font-size: 12px; font-family: monospace;">${expediente}</td>
       <td class="${causaClass}" ${causaTooltip}>${causaCorta}</td>
       <td style="font-size: 12px; color: #666;">${fechaCreacion}</td>
-      <td>
-        <div style="display: flex; gap: 5px;">
-          <button class="btn btn-info btn-editar" data-id="${u.id}" style="padding: 6px 10px; font-size: 12px;">✏️</button>
-          <button class="btn btn-danger btn-eliminar" data-id="${u.id}" data-nombre="${u.primer_nombre} ${u.primer_apellido}" style="padding: 6px 10px; font-size: 12px;">🗑️</button>
-        </div>
-      </td>
+      <td>${botonesHTML}</td>
     `;
     
     tbody.appendChild(tr);
     
+    // Event listener para foto clickeable
     const fotoImg = tr.querySelector('.foto-mini');
     if (fotoImg) {
       fotoImg.addEventListener('click', () => {
@@ -208,15 +228,23 @@ function renderizarTabla() {
       });
     }
     
-    tr.querySelector('.btn-editar').addEventListener('click', () => abrirModalUsuario(u.id));
-    tr.querySelector('.btn-eliminar').addEventListener('click', () => {
-      usuarioEliminandoId = u.id;
-      document.getElementById('mensajeEliminar').innerHTML = `
-        ¿Estás seguro de eliminar al usuario <strong>${u.primer_nombre} ${u.primer_apellido}</strong> (Cédula: ${u.cedula})?<br><br>
-        <span style="color:#dc3545;">⚠️ Esta acción no se puede deshacer.</span>
-      `;
-      document.getElementById('modalEliminar').style.display = 'flex';
-    });
+    // Event listeners para botones de editar/eliminar
+    const btnEditar = tr.querySelector('.btn-editar');
+    if (btnEditar) {
+      btnEditar.addEventListener('click', () => abrirModalUsuario(u.id));
+    }
+    
+    const btnEliminar = tr.querySelector('.btn-eliminar');
+    if (btnEliminar) {
+      btnEliminar.addEventListener('click', () => {
+        usuarioEliminandoId = u.id;
+        document.getElementById('mensajeEliminar').innerHTML = `
+          ¿Estás seguro de eliminar al usuario <strong>${u.primer_nombre} ${u.primer_apellido}</strong> (Cédula: ${u.cedula})?<br><br>
+          <span style="color:#dc3545;">⚠️ Esta acción no se puede deshacer.</span>
+        `;
+        document.getElementById('modalEliminar').style.display = 'flex';
+      });
+    }
   });
   
   renderizarPaginacion(totalPaginas);
