@@ -182,18 +182,15 @@ function renderizarTabla() {
     let puedeEliminar = false;
     
     if (usuarioLogueado.es_super_admin) {
-      // Super Admin puede editar/eliminar cualquier usuario
       puedeEditar = true;
       puedeEliminar = true;
     } else {
-      // Admin normal solo puede editar/eliminar usuarios normales
       if (u.nivel_acceso === 'usuario') {
         puedeEditar = true;
         puedeEliminar = true;
       }
     }
     
-    // Generar botones de acción según permisos
     let botonesHTML = '<div style="display: flex; gap: 5px;">';
     
     if (puedeEditar) {
@@ -220,7 +217,6 @@ function renderizarTabla() {
     
     tbody.appendChild(tr);
     
-    // Event listener para foto clickeable
     const fotoImg = tr.querySelector('.foto-mini');
     if (fotoImg) {
       fotoImg.addEventListener('click', () => {
@@ -228,7 +224,6 @@ function renderizarTabla() {
       });
     }
     
-    // Event listeners para botones de editar/eliminar
     const btnEditar = tr.querySelector('.btn-editar');
     if (btnEditar) {
       btnEditar.addEventListener('click', () => abrirModalUsuario(u.id));
@@ -339,7 +334,6 @@ async function abrirModalUsuario(usuarioId = null) {
   const titulo = document.getElementById('modalUsuarioTitulo');
   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
-  // Limpiar formulario
   document.getElementById('usuarioCedula').value = '';
   document.getElementById('usuarioExpediente').value = '';
   document.getElementById('usuarioNombre').value = '';
@@ -357,7 +351,6 @@ async function abrirModalUsuario(usuarioId = null) {
   
   const selectNivel = document.getElementById('usuarioNivel');
   
-  // RESTRICCIÓN: Solo Super Admin puede ver la opción de crear administradores
   if (usuarioLogueado.es_super_admin) {
     selectNivel.innerHTML = `
       <option value="usuario">Usuario</option>
@@ -373,7 +366,6 @@ async function abrirModalUsuario(usuarioId = null) {
   }
   
   if (usuarioId) {
-    // Modo edición
     const usuario = todosLosUsuarios.find(u => u.id === usuarioId);
     if (!usuario) return;
     
@@ -387,7 +379,6 @@ async function abrirModalUsuario(usuarioId = null) {
     document.getElementById('usuarioJerarquia').value = usuario.jerarquia || '';
     document.getElementById('usuarioCausaSancion').value = usuario.causa_sancion || '';
     
-    // RESTRICCIÓN CRÍTICA: Admin normal NO puede editar admins
     if (!usuarioLogueado.es_super_admin && usuario.nivel_acceso === 'administrador') {
       alert('⚠️ Solo el Super Administrador puede editar otros administradores');
       return;
@@ -419,7 +410,6 @@ async function abrirModalUsuario(usuarioId = null) {
     document.getElementById('usuarioCedula').disabled = true;
     
   } else {
-    // Modo crear
     usuarioEditandoId = null;
     titulo.textContent = 'Nuevo Usuario';
     document.getElementById('usuarioCedula').disabled = false;
@@ -432,7 +422,7 @@ async function abrirModalUsuario(usuarioId = null) {
 }
 
 // ============================================
-// 8. GUARDAR USUARIO (FUNCIÓN ÚNICA Y CORREGIDA)
+// 8. GUARDAR USUARIO (FUNCIÓN ÚNICA)
 // ============================================
 
 async function guardarUsuario() {
@@ -449,7 +439,6 @@ async function guardarUsuario() {
   
   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
-  // Validaciones
   if (!cedula || !nombre || !apellido) {
     alert('Por favor completa los campos obligatorios');
     return;
@@ -465,13 +454,11 @@ async function guardarUsuario() {
     return;
   }
   
-  // RESTRICCIÓN: Solo Super Admin puede crear admins
   if (nivel === 'administrador' && !usuarioLogueado.es_super_admin) {
     alert('⚠️ Solo el Super Administrador puede crear administradores');
     return;
   }
   
-  // VALIDACIÓN: Si es admin, DEBE tener contraseña (al crear)
   if (nivel === 'administrador' && !usuarioEditandoId && !password) {
     alert('🔐 Los administradores DEBEN tener una contraseña');
     return;
@@ -482,7 +469,6 @@ async function guardarUsuario() {
     return;
   }
   
-  // VALIDACIÓN: Solo Super Admin puede marcar como Super Admin
   if (esSuperAdmin && !usuarioLogueado.es_super_admin) {
     alert('⚠️ Solo el Super Administrador puede crear otros Super Administradores');
     return;
@@ -496,7 +482,6 @@ async function guardarUsuario() {
     let fotoUrl = fotoUrlActual;
     let passwordHash = null;
     
-    // Si hay nueva foto, subirla
     if (fotoFile) {
       const fileName = `usuario_${cedula}_${Date.now()}_${fotoFile.name}`;
       const { error: uploadError } = await supabaseClient.storage
@@ -512,7 +497,6 @@ async function guardarUsuario() {
       fotoUrl = urlData.publicUrl;
     }
     
-    // Si hay nueva contraseña, generar hash
     if (password) {
       passwordHash = await generarHash(password);
     }
@@ -529,14 +513,11 @@ async function guardarUsuario() {
       es_super_admin: esSuperAdmin && nivel === 'administrador'
     };
     
-    // Solo agregar password_hash si es admin
     if (nivel === 'administrador') {
       if (passwordHash) {
         datosUsuario.password_hash = passwordHash;
       }
-      // Si no hay nueva contraseña al editar, mantener la existente
     } else {
-      // Si es usuario normal, limpiar contraseña y super admin
       datosUsuario.password_hash = null;
       datosUsuario.es_super_admin = false;
     }
@@ -639,15 +620,20 @@ async function confirmarEliminar() {
       .delete()
       .eq('id', usuarioEliminandoId);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error al eliminar:', error);
+      throw error;
+    }
     
     document.getElementById('modalEliminar').style.display = 'none';
-    alert('Usuario eliminado correctamente');
-    cargarUsuarios();
+    alert('✅ Usuario eliminado correctamente');
+    
+    // Recargar la lista desde la base de datos
+    await cargarUsuarios();
     
   } catch (error) {
     console.error('Error:', error);
-    alert('Error al eliminar: ' + error.message);
+    alert('❌ Error al eliminar: ' + error.message);
   } finally {
     btnConfirmar.disabled = false;
     btnConfirmar.textContent = '🗑️ Sí, Eliminar';
