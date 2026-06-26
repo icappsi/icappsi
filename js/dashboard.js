@@ -15,20 +15,30 @@ function inicializarDashboard(user) {
   document.getElementById('userLevel').textContent = user.nivel_acceso || 'Usuario';
   
   // Formatear número de expediente con formato ID-ZU-CPNB-XXXXX-YY
-  let expedienteTexto = '';
-  if (user.numero_expediente) {
-    // Extraer solo los números del expediente
-    const numeros = user.numero_expediente.replace(/\D/g, '');
-    // Formatear con ceros a la izquierda (5 dígitos)
-    const numeroFormateado = numeros.padStart(5, '0');
-    // Obtener últimos 2 dígitos del año actual
-    const añoActual = new Date().getFullYear().toString().slice(-2);
-    expedienteTexto = `ID-ZU-CPNB-${numeroFormateado}-${añoActual}`;
-    document.getElementById('welcomeText').textContent = `¡Bienvenido, ${user.nombre}! | Expediente Investigado: ${expedienteTexto}`;
-  } else {
-    document.getElementById('welcomeText').textContent = `¡Bienvenido, ${user.nombre}!`;
-  }
-  
+// Formatear número de expediente con formato ID-ZU-CPNB-XXXXX-YY
+let expedienteTexto = '';
+if (user.numero_expediente) {
+  const numeros = user.numero_expediente.replace(/\D/g, '');
+  const numeroFormateado = numeros.padStart(5, '0');
+  const añoActual = new Date().getFullYear().toString().slice(-2);
+  expedienteTexto = `ID-ZU-CPNB-${numeroFormateado}-${añoActual}`;
+  document.getElementById('welcomeText').textContent = `¡Bienvenido, ${user.nombre}! | Expediente Investigado: ${expedienteTexto}`;
+} else {
+  document.getElementById('welcomeText').textContent = `¡Bienvenido, ${user.nombre}!`;
+}
+
+// Mostrar causa de sanción
+const causaSancionDiv = document.createElement('div');
+causaSancionDiv.id = 'causaSancion';
+if (user.causa_sancion && user.causa_sancion.trim() !== '') {
+  causaSancionDiv.innerHTML = `
+    <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-top: 15px;">
+      <p style="margin: 0 0 5px 0; font-weight: 600; color: #856404; font-size: 14px;">⚠️ Causa de Sanción:</p>
+      <p style="margin: 0; color: #856404; font-size: 15px; line-height: 1.5;">${user.causa_sancion}</p>
+    </div>
+  `;
+  document.querySelector('.welcome-banner > div').appendChild(causaSancionDiv);
+}
   // Mostrar causa de sanción debajo del mensaje de bienvenida
   const causaSancionDiv = document.getElementById('causaSancion');
   if (causaSancionDiv) {
