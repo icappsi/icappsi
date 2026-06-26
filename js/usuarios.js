@@ -22,16 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   const usuario = JSON.parse(usuarioStr);
+  
+  // Si no es administrador, simplemente no hacer nada (sin alerta)
   if (usuario.nivel_acceso !== 'administrador') {
-    alert('Acceso denegado. Solo administradores pueden gestionar usuarios.');
-    window.location.href = '../index.html';
+    document.body.innerHTML = ''; // Limpiar contenido
     return;
   }
   
   configurarEventos();
   cargarUsuarios();
 });
-
 // ============================================
 // 2. CONFIGURACIÓN DE EVENTOS
 // ============================================
