@@ -19,9 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   const usuario = JSON.parse(usuarioStr);
+  
+  // Si no es administrador, simplemente no hacer nada (sin alerta)
   if (usuario.nivel_acceso !== 'administrador') {
-    alert('Acceso denegado. Solo administradores pueden ver el historial.');
-    window.location.href = '../index.html';
+    document.body.innerHTML = ''; // Limpiar contenido
     return;
   }
   
