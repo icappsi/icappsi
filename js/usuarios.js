@@ -330,6 +330,8 @@ async function abrirModalUsuario(usuarioId = null) {
   document.getElementById('fotoPreviewContainer').style.display = 'none';
   document.getElementById('passwordContainer').style.display = 'none';
   document.getElementById('usuarioPassword').value = '';
+  document.getElementById('superAdminContainer').style.display = 'none';
+  document.getElementById('usuarioEsSuperAdmin').checked = false;
   fotoUrlActual = null;
   
   // Obtener el select de nivel
@@ -343,6 +345,9 @@ async function abrirModalUsuario(usuarioId = null) {
       <option value="administrador">Administrador</option>
     `;
     selectNivel.disabled = false;
+    
+    // Mostrar checkbox de Super Admin
+    document.getElementById('superAdminContainer').style.display = 'block';
   } else {
     // Admin Normal: SOLO puede crear usuarios normales
     selectNivel.innerHTML = `
@@ -376,6 +381,11 @@ async function abrirModalUsuario(usuarioId = null) {
     if (usuarioLogueado.es_super_admin) {
       selectNivel.value = usuario.nivel_acceso || 'usuario';
       selectNivel.disabled = false;
+      
+      // Marcar checkbox si es Super Admin
+      if (usuario.es_super_admin) {
+        document.getElementById('usuarioEsSuperAdmin').checked = true;
+      }
     } else {
       // Admin normal solo puede editar usuarios normales
       selectNivel.value = 'usuario';
@@ -419,6 +429,7 @@ async function guardarUsuario() {
   const causaSancion = document.getElementById('usuarioCausaSancion').value.trim();
   const fotoFile = document.getElementById('usuarioFoto').files[0];
   const password = document.getElementById('usuarioPassword').value;
+  const esSuperAdmin = document.getElementById('usuarioEsSuperAdmin').checked;
   
   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
@@ -455,6 +466,12 @@ async function guardarUsuario() {
       alert('🔐 La contraseña debe tener al menos 8 caracteres');
       return;
     }
+  }
+  
+  // VALIDACIÓN: Solo Super Admin puede marcar como Super Admin
+  if (esSuperAdmin && !usuarioLogueado.es_super_admin) {
+    alert('⚠️ Solo el Super Administrador puede crear otros Super Administradores');
+    return;
   }
   
   const btnGuardar = document.getElementById('btnGuardarUsuario');
@@ -494,7 +511,8 @@ async function guardarUsuario() {
       nivel_acceso: nivel,
       numero_expediente: expediente || null,
       causa_sancion: causaSancion || null,
-      foto_url: fotoUrl
+      foto_url: fotoUrl,
+      es_super_admin: esSuperAdmin && nivel === 'administrador' // Solo puede ser Super Admin si es administrador
     };
     
     // Solo agregar password_hash si es admin
@@ -506,8 +524,9 @@ async function guardarUsuario() {
         // No hacer nada, se mantiene la existente
       }
     } else {
-      // Si es usuario normal, limpiar contraseña
+      // Si es usuario normal, limpiar contraseña y super admin
       datosUsuario.password_hash = null;
+      datosUsuario.es_super_admin = false;
     }
     
     let error;
@@ -542,7 +561,12 @@ async function guardarUsuario() {
     
     // Si se creó un admin, mostrar la contraseña generada
     if (!usuarioEditandoId && nivel === 'administrador' && password) {
-      alert(`✅ Administrador creado correctamente\n\n🔐 Contraseña: ${password}\n\n⚠️ IMPORTANTE: Guarda esta contraseña en un lugar seguro. El administrador deberá usarla para iniciar sesión.`);
+      let mensaje = `✅ Administrador creado correctamente\n\n🔐 Contraseña: ${password}`;
+      if (esSuperAdmin) {
+        mensaje += `\n\n🔑 Este usuario es Super Administrador`;
+      }
+      mensaje += `\n\n⚠️ IMPORTANTE: Guarda esta contraseña en un lugar seguro.`;
+      alert(mensaje);
     } else {
       alert(usuarioEditandoId ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
     }
