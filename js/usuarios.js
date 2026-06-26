@@ -1,5 +1,5 @@
 // ============================================
-// GESTIÓN DE USUARIOS - COMPLETO
+// GESTIÓN DE USUARIOS - COMPLETO Y CORREGIDO
 // ============================================
 
 let todosLosUsuarios = [];
@@ -71,9 +71,7 @@ function configurarEventos() {
   // Validación de cédula: solo 7-8 dígitos numéricos
   const inputCedula = document.getElementById('usuarioCedula');
   inputCedula.addEventListener('input', (e) => {
-    // Solo permitir números
     e.target.value = e.target.value.replace(/\D/g, '');
-    // Limitar a 8 caracteres
     if (e.target.value.length > 8) {
       e.target.value = e.target.value.slice(0, 8);
     }
@@ -168,7 +166,6 @@ function renderizarTabla() {
       ? '<span class="badge badge-admin">Admin</span>' 
       : '<span class="badge badge-usuario">Usuario</span>';
     
-    // Foto con clic para ampliar
     let fotoHTML;
     if (u.foto_url) {
       fotoHTML = `<img src="${u.foto_url}" class="foto-mini" alt="Foto" data-foto-url="${u.foto_url}" data-nombre="${u.primer_nombre} ${u.primer_apellido}" title="Click para ampliar">`;
@@ -204,7 +201,6 @@ function renderizarTabla() {
     
     tbody.appendChild(tr);
     
-    // Event listener para foto clickeable
     const fotoImg = tr.querySelector('.foto-mini');
     if (fotoImg) {
       fotoImg.addEventListener('click', () => {
@@ -231,7 +227,6 @@ function renderizarTabla() {
 // ============================================
 
 function abrirLightbox(fotoUrl, nombre) {
-  // Crear overlay del lightbox
   const lightbox = document.createElement('div');
   lightbox.className = 'lightbox-overlay';
   lightbox.innerHTML = `
@@ -242,14 +237,12 @@ function abrirLightbox(fotoUrl, nombre) {
   
   document.body.appendChild(lightbox);
   
-  // Cerrar al hacer clic fuera de la imagen
   lightbox.addEventListener('click', (e) => {
     if (e.target === lightbox || e.target.classList.contains('lightbox-close')) {
       document.body.removeChild(lightbox);
     }
   });
   
-  // Cerrar con tecla ESC
   const cerrarConEsc = (e) => {
     if (e.key === 'Escape') {
       if (document.body.contains(lightbox)) {
@@ -334,22 +327,17 @@ async function abrirModalUsuario(usuarioId = null) {
   document.getElementById('usuarioEsSuperAdmin').checked = false;
   fotoUrlActual = null;
   
-  // Obtener el select de nivel
   const selectNivel = document.getElementById('usuarioNivel');
   
   // RESTRICCIÓN: Solo Super Admin puede ver la opción de crear administradores
   if (usuarioLogueado.es_super_admin) {
-    // Super Admin: puede crear/editar admins y usuarios
     selectNivel.innerHTML = `
       <option value="usuario">Usuario</option>
       <option value="administrador">Administrador</option>
     `;
     selectNivel.disabled = false;
-    
-    // Mostrar checkbox de Super Admin
     document.getElementById('superAdminContainer').style.display = 'block';
   } else {
-    // Admin Normal: SOLO puede crear usuarios normales
     selectNivel.innerHTML = `
       <option value="usuario">Usuario</option>
     `;
@@ -377,17 +365,14 @@ async function abrirModalUsuario(usuarioId = null) {
       return;
     }
     
-    // Configurar nivel según permisos
     if (usuarioLogueado.es_super_admin) {
       selectNivel.value = usuario.nivel_acceso || 'usuario';
       selectNivel.disabled = false;
       
-      // Marcar checkbox si es Super Admin
       if (usuario.es_super_admin) {
         document.getElementById('usuarioEsSuperAdmin').checked = true;
       }
     } else {
-      // Admin normal solo puede editar usuarios normales
       selectNivel.value = 'usuario';
       selectNivel.innerHTML = '<option value="usuario">Usuario</option>';
     }
@@ -398,7 +383,6 @@ async function abrirModalUsuario(usuarioId = null) {
       document.getElementById('fotoPreviewContainer').style.display = 'block';
     }
     
-    // Si es admin, mostrar campo de contraseña
     if (usuario.nivel_acceso === 'administrador') {
       document.getElementById('passwordContainer').style.display = 'block';
       document.getElementById('passwordLabel').textContent = 'Nueva Contraseña (dejar vacío para mantener la actual):';
@@ -418,6 +402,10 @@ async function abrirModalUsuario(usuarioId = null) {
   
   modal.style.display = 'flex';
 }
+
+// ============================================
+// 8. GUARDAR USUARIO (FUNCIÓN ÚNICA Y CORREGIDA)
+// ============================================
 
 async function guardarUsuario() {
   const cedula = document.getElementById('usuarioCedula').value.trim();
@@ -455,17 +443,15 @@ async function guardarUsuario() {
     return;
   }
   
-  // VALIDACIÓN: Si es admin, DEBE tener contraseña
-  if (nivel === 'administrador') {
-    if (!usuarioEditandoId && !password) {
-      alert('🔐 Los administradores DEBEN tener una contraseña');
-      return;
-    }
-    
-    if (password && password.length < 8) {
-      alert('🔐 La contraseña debe tener al menos 8 caracteres');
-      return;
-    }
+  // VALIDACIÓN: Si es admin, DEBE tener contraseña (al crear)
+  if (nivel === 'administrador' && !usuarioEditandoId && !password) {
+    alert('🔐 Los administradores DEBEN tener una contraseña');
+    return;
+  }
+  
+  if (password && password.length < 8) {
+    alert('🔐 La contraseña debe tener al menos 8 caracteres');
+    return;
   }
   
   // VALIDACIÓN: Solo Super Admin puede marcar como Super Admin
@@ -512,17 +498,15 @@ async function guardarUsuario() {
       numero_expediente: expediente || null,
       causa_sancion: causaSancion || null,
       foto_url: fotoUrl,
-      es_super_admin: esSuperAdmin && nivel === 'administrador' // Solo puede ser Super Admin si es administrador
+      es_super_admin: esSuperAdmin && nivel === 'administrador'
     };
     
     // Solo agregar password_hash si es admin
     if (nivel === 'administrador') {
       if (passwordHash) {
         datosUsuario.password_hash = passwordHash;
-      } else if (usuarioEditandoId) {
-        // Mantener contraseña actual al editar
-        // No hacer nada, se mantiene la existente
       }
+      // Si no hay nueva contraseña al editar, mantener la existente
     } else {
       // Si es usuario normal, limpiar contraseña y super admin
       datosUsuario.password_hash = null;
@@ -559,7 +543,6 @@ async function guardarUsuario() {
     
     document.getElementById('modalUsuario').style.display = 'none';
     
-    // Si se creó un admin, mostrar la contraseña generada
     if (!usuarioEditandoId && nivel === 'administrador' && password) {
       let mensaje = `✅ Administrador creado correctamente\n\n🔐 Contraseña: ${password}`;
       if (esSuperAdmin) {
@@ -581,10 +564,10 @@ async function guardarUsuario() {
     btnGuardar.textContent = '💾 Guardar';
   }
 }
+
 async function generarSiguienteExpediente() {
   const añoActual = new Date().getFullYear().toString().slice(-2);
   
-  // Buscar el número más alto en los expedientes existentes
   let maxNumero = 0;
   todosLosUsuarios.forEach(u => {
     if (u.numero_expediente) {
@@ -600,117 +583,8 @@ async function generarSiguienteExpediente() {
   return `ID-ZU-CPNB-${siguienteNum}-${añoActual}`;
 }
 
-async function guardarUsuario() {
-  const cedula = document.getElementById('usuarioCedula').value.trim();
-  const expediente = document.getElementById('usuarioExpediente').value.trim();
-  const nombre = document.getElementById('usuarioNombre').value.trim();
-  const apellido = document.getElementById('usuarioApellido').value.trim();
-  const jerarquia = document.getElementById('usuarioJerarquia').value;
-  const nivel = document.getElementById('usuarioNivel').value;
-  const causaSancion = document.getElementById('usuarioCausaSancion').value.trim();
-  const fotoFile = document.getElementById('usuarioFoto').files[0];
-  
-  // Validaciones
-  if (!cedula || !nombre || !apellido) {
-    alert('Por favor completa los campos obligatorios: Cédula, Nombre, Apellido y Jerarquía');
-    return;
-  }
-  
-  // Validar cédula: 7-8 dígitos numéricos
-  if (!/^\d{7,8}$/.test(cedula)) {
-    alert('La cédula debe contener entre 7 y 8 dígitos numéricos');
-    return;
-  }
-  
-  // Validar jerarquía
-  if (!jerarquia) {
-    alert('Por favor selecciona una jerarquía');
-    return;
-  }
-  
-  const btnGuardar = document.getElementById('btnGuardarUsuario');
-  btnGuardar.disabled = true;
-  btnGuardar.textContent = 'Guardando...';
-  
-  try {
-    let fotoUrl = fotoUrlActual;
-    
-    // Si hay nueva foto, subirla
-    if (fotoFile) {
-      const fileName = `usuario_${cedula}_${Date.now()}_${fotoFile.name}`;
-      const { error: uploadError } = await supabaseClient.storage
-        .from('fotos-usuarios')
-        .upload(fileName, fotoFile, { upsert: true });
-      
-      if (uploadError) {
-        console.error('Error subiendo foto:', uploadError);
-        throw new Error('Error al subir la foto: ' + uploadError.message);
-      }
-      
-      const { data: urlData } = supabaseClient.storage
-        .from('fotos-usuarios')
-        .getPublicUrl(fileName);
-      
-      fotoUrl = urlData.publicUrl;
-    }
-    
-    const datosUsuario = {
-      cedula: cedula,
-      primer_nombre: nombre,
-      primer_apellido: apellido,
-      jerarquia: jerarquia,
-      nivel_acceso: nivel,
-      numero_expediente: expediente || null,
-      causa_sancion: causaSancion || null,
-      foto_url: fotoUrl
-    };
-    
-    let error;
-    
-    if (usuarioEditandoId) {
-      // Actualizar
-      ({ error } = await supabaseClient
-        .from('usuarios')
-        .update(datosUsuario)
-        .eq('id', usuarioEditandoId));
-    } else {
-      // Verificar que no exista la cédula
-      const { data: existente } = await supabaseClient
-        .from('usuarios')
-        .select('id')
-        .eq('cedula', cedula)
-        .maybeSingle();
-      
-      if (existente) {
-        alert('Ya existe un usuario con esa cédula');
-        btnGuardar.disabled = false;
-        btnGuardar.textContent = '💾 Guardar';
-        return;
-      }
-      
-      // Crear
-      ({ error } = await supabaseClient
-        .from('usuarios')
-        .insert(datosUsuario));
-    }
-    
-    if (error) throw error;
-    
-    document.getElementById('modalUsuario').style.display = 'none';
-    alert(usuarioEditandoId ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
-    cargarUsuarios();
-    
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error: ' + error.message);
-  } finally {
-    btnGuardar.disabled = false;
-    btnGuardar.textContent = '💾 Guardar';
-  }
-}
-
 // ============================================
-// 8. ELIMINAR USUARIO
+// 9. ELIMINAR USUARIO
 // ============================================
 
 async function confirmarEliminar() {
