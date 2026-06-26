@@ -9,32 +9,44 @@ const passwordGroup = document.getElementById('passwordGroup');
 const mensajeDiv = document.getElementById('mensaje');
 const btnIngresar = document.getElementById('btnIngresar');
 
-let usuarioActual = null;
+let usuarioDetectado = null;
 
-// Cuando el usuario escribe la cédula, verificar si es admin
+// Permitir solo números en la cédula
+cedulaInput.addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/\D/g, '');
+});
+
+// Cuando el usuario termina de escribir la cédula, verificar si es admin
 cedulaInput.addEventListener('blur', async () => {
   const cedula = cedulaInput.value.trim();
-  if (cedula.length < 7) return;
+  
+  if (cedula.length < 7) {
+    passwordGroup.style.display = 'none';
+    usuarioDetectado = null;
+    return;
+  }
   
   try {
     const { data, error } = await supabaseClient
       .from('usuarios')
-      .select('id, cedula, primer_nombre, primer_apellido, jerarquia, nivel_acceso, foto_url, password_hash, es_super_admin')
+      .select('id, cedula, primer_nombre, primer_apellido, jerarquia, nivel_acceso, foto_url, password_hash, es_super_admin, causa_sancion, numero_expediente')
       .eq('cedula', cedula)
-      .single();
+      .maybeSingle();
     
     if (error || !data) {
-      usuarioActual = null;
+      usuarioDetectado = null;
       passwordGroup.style.display = 'none';
       return;
     }
     
-    usuarioActual = data;
+    usuarioDetectado = data;
     
     // Si es administrador, mostrar campo de contraseña
     if (data.nivel_acceso === 'administrador') {
       passwordGroup.style.display = 'block';
-      passwordInput.focus();
+      setTimeout(() => {
+        passwordInput.focus();
+      }, 100);
     } else {
       passwordGroup.style.display = 'none';
     }
@@ -44,9 +56,11 @@ cedulaInput.addEventListener('blur', async () => {
   }
 });
 
-// Permitir solo números en la cédula
-cedulaInput.addEventListener('input', (e) => {
-  e.target.value = e.target.value.replace(/\D/g, '');
+// También verificar al presionar Enter en la cédula
+cedulaInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && usuarioDetectado && usuarioDetectado.nivel_acceso !== 'administrador') {
+    loginForm.dispatchEvent(new Event('submit'));
+  }
 });
 
 // Enviar formulario
@@ -72,11 +86,9 @@ loginForm.addEventListener('submit', async (e) => {
       .eq('cedula', cedula)
       .single();
     
-    btnIngresar.disabled = false;
-    btnIngresar.textContent = 'Ingresar';
-    
     if (error || !data) {
       mostrarMensaje('❌ Cédula no encontrada en el sistema', 'error');
+      resetButton();
       return;
     }
     
@@ -87,11 +99,13 @@ loginForm.addEventListener('submit', async (e) => {
       if (!password) {
         mostrarMensaje('🔐 Los administradores deben ingresar su contraseña', 'error');
         passwordInput.focus();
+        resetButton();
         return;
       }
       
       if (!data.password_hash) {
         mostrarMensaje('⚠️ Este administrador no tiene contraseña configurada. Contacte al Super Administrador.', 'error');
+        resetButton();
         return;
       }
       
@@ -102,19 +116,21 @@ loginForm.addEventListener('submit', async (e) => {
         mostrarMensaje('❌ Contraseña incorrecta', 'error');
         passwordInput.value = '';
         passwordInput.focus();
+        resetButton();
         return;
       }
     }
     
     // Verificar sesión activa
-    const { data: sesionExistente } = await supabaseClient
+    const { data: sesionExistente, error: errorSesion } = await supabaseClient
       .from('sesiones_activas')
       .select('*')
       .eq('cedula', cedula)
-      .single();
+      .maybeSingle();
     
     if (sesionExistente) {
       mostrarMensaje('⚠️ Este usuario ya tiene una sesión activa. Debe cerrar sesión primero.', 'error');
+      resetButton();
       return;
     }
     
@@ -146,12 +162,16 @@ loginForm.addEventListener('submit', async (e) => {
   } catch (err) {
     console.error('Error:', err);
     mostrarMensaje('❌ Error al conectar con el servidor', 'error');
-    btnIngresar.disabled = false;
-    btnIngresar.textContent = 'Ingresar';
+    resetButton();
   }
 });
 
 function mostrarMensaje(texto, tipo) {
   mensajeDiv.textContent = texto;
   mensajeDiv.className = `mensaje ${tipo}`;
+}
+
+function resetButton() {
+  btnIngresar.disabled = false;
+  btnIngresar.textContent = 'Ingresar';
 }
