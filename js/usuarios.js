@@ -316,6 +316,7 @@ function renderizarPaginacion(totalPaginas) {
 async function abrirModalUsuario(usuarioId = null) {
   const modal = document.getElementById('modalUsuario');
   const titulo = document.getElementById('modalUsuarioTitulo');
+  const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
   // Limpiar formulario
   document.getElementById('usuarioCedula').value = '';
@@ -327,7 +328,28 @@ async function abrirModalUsuario(usuarioId = null) {
   document.getElementById('usuarioCausaSancion').value = '';
   document.getElementById('usuarioFoto').value = '';
   document.getElementById('fotoPreviewContainer').style.display = 'none';
+  document.getElementById('passwordContainer').style.display = 'none';
+  document.getElementById('usuarioPassword').value = '';
   fotoUrlActual = null;
+  
+  // Obtener el select de nivel
+  const selectNivel = document.getElementById('usuarioNivel');
+  
+  // RESTRICCIÓN: Solo Super Admin puede ver la opción de crear administradores
+  if (usuarioLogueado.es_super_admin) {
+    // Super Admin: puede crear/editar admins y usuarios
+    selectNivel.innerHTML = `
+      <option value="usuario">Usuario</option>
+      <option value="administrador">Administrador</option>
+    `;
+    selectNivel.disabled = false;
+  } else {
+    // Admin Normal: SOLO puede crear usuarios normales
+    selectNivel.innerHTML = `
+      <option value="usuario">Usuario</option>
+    `;
+    selectNivel.disabled = false;
+  }
   
   if (usuarioId) {
     // Modo edición
@@ -342,8 +364,23 @@ async function abrirModalUsuario(usuarioId = null) {
     document.getElementById('usuarioNombre').value = usuario.primer_nombre || '';
     document.getElementById('usuarioApellido').value = usuario.primer_apellido || '';
     document.getElementById('usuarioJerarquia').value = usuario.jerarquia || '';
-    document.getElementById('usuarioNivel').value = usuario.nivel_acceso || 'usuario';
     document.getElementById('usuarioCausaSancion').value = usuario.causa_sancion || '';
+    
+    // RESTRICCIÓN CRÍTICA: Admin normal NO puede editar admins
+    if (!usuarioLogueado.es_super_admin && usuario.nivel_acceso === 'administrador') {
+      alert('⚠️ Solo el Super Administrador puede editar otros administradores');
+      return;
+    }
+    
+    // Configurar nivel según permisos
+    if (usuarioLogueado.es_super_admin) {
+      selectNivel.value = usuario.nivel_acceso || 'usuario';
+      selectNivel.disabled = false;
+    } else {
+      // Admin normal solo puede editar usuarios normales
+      selectNivel.value = 'usuario';
+      selectNivel.innerHTML = '<option value="usuario">Usuario</option>';
+    }
     
     if (usuario.foto_url) {
       fotoUrlActual = usuario.foto_url;
@@ -351,16 +388,20 @@ async function abrirModalUsuario(usuarioId = null) {
       document.getElementById('fotoPreviewContainer').style.display = 'block';
     }
     
-    // La cédula no se puede cambiar al editar
+    // Si es admin, mostrar campo de contraseña
+    if (usuario.nivel_acceso === 'administrador') {
+      document.getElementById('passwordContainer').style.display = 'block';
+      document.getElementById('passwordLabel').textContent = 'Nueva Contraseña (dejar vacío para mantener la actual):';
+    }
+    
     document.getElementById('usuarioCedula').disabled = true;
     
   } else {
-    // Modo crear - generar número de expediente automáticamente
+    // Modo crear
     usuarioEditandoId = null;
     titulo.textContent = 'Nuevo Usuario';
     document.getElementById('usuarioCedula').disabled = false;
     
-    // Generar siguiente número de expediente
     const siguienteNumero = await generarSiguienteExpediente();
     document.getElementById('usuarioExpediente').value = siguienteNumero;
   }
@@ -368,6 +409,154 @@ async function abrirModalUsuario(usuarioId = null) {
   modal.style.display = 'flex';
 }
 
+async function guardarUsuario() {
+  const cedula = document.getElementById('usuarioCedula').value.trim();
+  const expediente = document.getElementById('usuarioExpediente').value.trim();
+  const nombre = document.getElementById('usuarioNombre').value.trim();
+  const apellido = document.getElementById('usuarioApellido').value.trim();
+  const jerarquia = document.getElementById('usuarioJerarquia').value;
+  const nivel = document.getElementById('usuarioNivel').value;
+  const causaSancion = document.getElementById('usuarioCausaSancion').value.trim();
+  const fotoFile = document.getElementById('usuarioFoto').files[0];
+  const password = document.getElementById('usuarioPassword').value;
+  
+  const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
+  
+  // Validaciones
+  if (!cedula || !nombre || !apellido) {
+    alert('Por favor completa los campos obligatorios');
+    return;
+  }
+  
+  if (!/^\d{7,8}$/.test(cedula)) {
+    alert('La cédula debe contener entre 7 y 8 dígitos numéricos');
+    return;
+  }
+  
+  if (!jerarquia) {
+    alert('Por favor selecciona una jerarquía');
+    return;
+  }
+  
+  // RESTRICCIÓN: Solo Super Admin puede crear admins
+  if (nivel === 'administrador' && !usuarioLogueado.es_super_admin) {
+    alert('⚠️ Solo el Super Administrador puede crear administradores');
+    return;
+  }
+  
+  // VALIDACIÓN: Si es admin, DEBE tener contraseña
+  if (nivel === 'administrador') {
+    if (!usuarioEditandoId && !password) {
+      alert('🔐 Los administradores DEBEN tener una contraseña');
+      return;
+    }
+    
+    if (password && password.length < 8) {
+      alert('🔐 La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+  }
+  
+  const btnGuardar = document.getElementById('btnGuardarUsuario');
+  btnGuardar.disabled = true;
+  btnGuardar.textContent = 'Guardando...';
+  
+  try {
+    let fotoUrl = fotoUrlActual;
+    let passwordHash = null;
+    
+    // Si hay nueva foto, subirla
+    if (fotoFile) {
+      const fileName = `usuario_${cedula}_${Date.now()}_${fotoFile.name}`;
+      const { error: uploadError } = await supabaseClient.storage
+        .from('fotos-usuarios')
+        .upload(fileName, fotoFile, { upsert: true });
+      
+      if (uploadError) throw new Error('Error al subir la foto: ' + uploadError.message);
+      
+      const { data: urlData } = supabaseClient.storage
+        .from('fotos-usuarios')
+        .getPublicUrl(fileName);
+      
+      fotoUrl = urlData.publicUrl;
+    }
+    
+    // Si hay nueva contraseña, generar hash
+    if (password) {
+      passwordHash = await generarHash(password);
+    }
+    
+    const datosUsuario = {
+      cedula: cedula,
+      primer_nombre: nombre,
+      primer_apellido: apellido,
+      jerarquia: jerarquia,
+      nivel_acceso: nivel,
+      numero_expediente: expediente || null,
+      causa_sancion: causaSancion || null,
+      foto_url: fotoUrl
+    };
+    
+    // Solo agregar password_hash si es admin
+    if (nivel === 'administrador') {
+      if (passwordHash) {
+        datosUsuario.password_hash = passwordHash;
+      } else if (usuarioEditandoId) {
+        // Mantener contraseña actual al editar
+        // No hacer nada, se mantiene la existente
+      }
+    } else {
+      // Si es usuario normal, limpiar contraseña
+      datosUsuario.password_hash = null;
+    }
+    
+    let error;
+    
+    if (usuarioEditandoId) {
+      ({ error } = await supabaseClient
+        .from('usuarios')
+        .update(datosUsuario)
+        .eq('id', usuarioEditandoId));
+    } else {
+      const { data: existente } = await supabaseClient
+        .from('usuarios')
+        .select('id')
+        .eq('cedula', cedula)
+        .maybeSingle();
+      
+      if (existente) {
+        alert('Ya existe un usuario con esa cédula');
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = '💾 Guardar';
+        return;
+      }
+      
+      ({ error } = await supabaseClient
+        .from('usuarios')
+        .insert(datosUsuario));
+    }
+    
+    if (error) throw error;
+    
+    document.getElementById('modalUsuario').style.display = 'none';
+    
+    // Si se creó un admin, mostrar la contraseña generada
+    if (!usuarioEditandoId && nivel === 'administrador' && password) {
+      alert(`✅ Administrador creado correctamente\n\n🔐 Contraseña: ${password}\n\n⚠️ IMPORTANTE: Guarda esta contraseña en un lugar seguro. El administrador deberá usarla para iniciar sesión.`);
+    } else {
+      alert(usuarioEditandoId ? 'Usuario actualizado correctamente' : 'Usuario creado correctamente');
+    }
+    
+    cargarUsuarios();
+    
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error: ' + error.message);
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.textContent = '💾 Guardar';
+  }
+}
 async function generarSiguienteExpediente() {
   const añoActual = new Date().getFullYear().toString().slice(-2);
   
