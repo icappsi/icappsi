@@ -3,76 +3,119 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ICAP - Sistema de Supervisión Intensiva</title>
+  <title>ICAP - Acceso Restringido</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
+
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* --- ESTILOS CSS INTEGRADOS --- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 100%);
+      background-color: #ffffff;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 20px;
+      position: relative;
+      overflow-x: hidden;
     }
+
+    /* --- MARCA DE AGUA (CUBRE TODA LA PANTALLA) --- */
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* --- CONTENEDOR DEL LOGIN --- */
     .login-container {
-      background: white;
-      border-radius: 15px;
-      padding: 40px;
-      max-width: 450px;
       width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
     }
-    .logo-container {
+
+    .login-box {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 35px 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      border-top: 5px solid #6b0f0f;
       text-align: center;
-      margin-bottom: 30px;
     }
-    .logo-container img {
-      width: 100px;
-      height: 100px;
-      object-fit: contain;
+
+    /* --- LOGO SUPERIOR (MÁS GRANDE) --- */
+    .logo-container {
       margin-bottom: 15px;
     }
-    .logo-container h1 {
+
+    .logo {
+      max-width: 140px;
+      height: auto;
+    }
+
+    /* --- TÍTULOS --- */
+    h1 {
       color: #4a0404;
       font-size: 22px;
+      font-weight: 700;
       margin-bottom: 5px;
+      line-height: 1.2;
     }
-    .logo-container p {
-      color: #666;
+
+    .subtitle {
+      color: #888888;
       font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 25px;
     }
+
+    /* --- FORMULARIO --- */
     .form-group {
       margin-bottom: 20px;
+      text-align: left;
     }
-    .form-group label {
+
+    label {
       display: block;
+      color: #4a0404;
       margin-bottom: 8px;
       font-weight: 600;
-      color: #4a0404;
       font-size: 14px;
     }
-    .form-group input {
+
+    input {
       width: 100%;
-      padding: 12px;
+      padding: 12px 15px;
       border: 2px solid #e0e0e0;
       border-radius: 8px;
-      font-size: 15px;
-      transition: border-color 0.3s;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background-color: #fafafa;
     }
-    .form-group input:focus {
+
+    input:focus {
       outline: none;
-      border-color: #6b0f0f;
+      border-color: #8b0000;
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
     }
-    #passwordGroup {
-      display: none;
-      animation: slideDown 0.3s ease;
-    }
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+
     .btn-login {
       width: 100%;
       padding: 14px;
@@ -83,79 +126,224 @@
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
-    .btn-login:hover { background: #8b0000; }
-    .btn-login:disabled { background: #ccc; cursor: not-allowed; }
+
+    .btn-login:hover {
+      background: #8b0000;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(139, 0, 0, 0.2);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    /* --- MENSAJES --- */
     .mensaje {
-      margin-top: 20px;
+      margin-top: 15px;
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 6px;
       text-align: center;
       font-size: 14px;
+      font-weight: 500;
       display: none;
     }
+
     .mensaje.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+      background: #ffe6e6;
+      color: #cc0000;
+      border: 1px solid #ffcccc;
       display: block;
     }
+
     .mensaje.exito {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+      background: #e6ffe6;
+      color: #008000;
+      border: 1px solid #ccffcc;
       display: block;
     }
+
     .mensaje.info {
       background: #fff3cd;
       color: #856404;
       border: 1px solid #ffeeba;
       display: block;
     }
-    .security-notice {
-      margin-top: 20px;
-      padding: 10px;
-      background: #f8f9fa;
-      border-left: 3px solid #6b0f0f;
-      border-radius: 4px;
+
+    /* --- CAMPO DE CONTRASEÑA (OCULTO POR DEFECTO) --- */
+    #passwordGroup {
+      display: none;
+      animation: slideDown 0.4s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+        max-height: 0;
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 200px;
+      }
+    }
+
+    .password-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff3cd;
+      border: 1px solid #ffeeba;
+      color: #856404;
+      padding: 8px 12px;
+      border-radius: 6px;
       font-size: 12px;
-      color: #666;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .password-notice .icon {
+      font-size: 16px;
+    }
+
+    /* --- FOOTER (DEBAJO DEL BOTÓN) --- */
+    .footer-info {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+    }
+
+    .footer-info p {
+      font-size: 12px;
+      color: #666666;
+      margin: 5px 0;
+      line-height: 1.4;
+    }
+
+    .footer-info .copyright {
+      font-size: 11px;
+      color: #999999;
+      margin-top: 10px;
+    }
+
+    .security-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f8f9fa;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 11px;
+      color: #6b0f0f;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    /* --- RESPONSIVE PARA CELULARES --- */
+    @media (max-width: 480px) {
+      body {
+        padding: 15px;
+      }
+
+      .login-box {
+        padding: 30px 20px;
+      }
+
+      h1 {
+        font-size: 19px;
+      }
+
+      .subtitle {
+        font-size: 11px;
+      }
+
+      .logo {
+        max-width: 120px;
+      }
     }
   </style>
 </head>
 <body>
+
+  <!-- Marca de agua que cubre toda la pantalla -->
+  <img src="img/logo2.png" alt="Marca de agua" class="watermark">
+
   <div class="login-container">
-    <div class="logo-container">
-      <img src="img/logo1.png" alt="Logo ICAP">
+    <div class="login-box">
+
+      <!-- Logo principal más grande -->
+      <div class="logo-container">
+        <img src="img/logo1.png" alt="Logo ICAP" class="logo">
+      </div>
+
+      <!-- Títulos -->
       <h1>Programa de Supervisión Intensiva</h1>
-      <p>ICAP - Cuerpo de Policía Nacional Bolivariana</p>
+      <p class="subtitle">ICAP Acceso Restringido</p>
+
+      <form id="loginForm">
+        <!-- Campo de Cédula -->
+        <div class="form-group">
+          <label for="cedula">Ingrese Número de Cédula</label>
+          <input 
+            type="text" 
+            id="cedula" 
+            name="cedula" 
+            placeholder="Ingrese su número de cédula"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            required
+            autocomplete="off"
+          >
+        </div>
+
+        <!-- Campo de Contraseña (OCULTO por defecto, aparece solo para admins) -->
+        <div class="form-group" id="passwordGroup">
+          <div class="password-notice">
+            <span class="icon">🔐</span>
+            <span>Acceso de Administrador detectado. Ingrese su contraseña.</span>
+          </div>
+          <label for="password">Contraseña de Administrador</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            placeholder="Ingrese su contraseña"
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button type="submit" class="btn-login" id="btnIngresar">Ingresar</button>
+
+        <div id="mensaje" class="mensaje"></div>
+
+        <!-- Footer con información institucional -->
+        <div class="footer-info">
+          <p><strong>ICAP del Cuerpo de Policía Nacional Bolivariana</strong></p>
+          <div class="security-badge">
+            🔒 Sistema Seguro con Autenticación
+          </div>
+          <p class="copyright">© Desarrollado por OTIC ZULIA</p>
+        </div>
+      </form>
     </div>
-    
-    <form id="loginForm">
-      <div class="form-group">
-        <label for="cedula">🆔 Cédula:</label>
-        <input type="text" id="cedula" placeholder="Ingrese su cédula" required maxlength="8" inputmode="numeric">
-      </div>
-      
-      <div class="form-group" id="passwordGroup">
-        <label for="password">🔐 Contraseña de Administrador:</label>
-        <input type="password" id="password" placeholder="Ingrese su contraseña">
-      </div>
-      
-      <button type="submit" class="btn-login" id="btnIngresar">Ingresar</button>
-      
-      <div id="mensaje" class="mensaje"></div>
-      
-      <div class="security-notice">
-        🔒 <strong>Seguridad:</strong> Los administradores deben ingresar su contraseña para acceder al sistema.
-      </div>
-    </form>
   </div>
 
+  <!-- Librería de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Configuración de Supabase (DEBE IR PRIMERO) -->
   <script src="js/config.js"></script>
+  
+  <!-- Módulo de Seguridad (NUEVO) -->
   <script src="js/seguridad.js"></script>
+  
+  <!-- Tu archivo JS principal -->
   <script src="js/index.js"></script>
+
 </body>
 </html>
