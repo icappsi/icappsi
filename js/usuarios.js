@@ -68,6 +68,17 @@ function configurarEventos() {
     });
   });
   
+  // Validación de cédula: solo 7-8 dígitos numéricos
+  const inputCedula = document.getElementById('usuarioCedula');
+  inputCedula.addEventListener('input', (e) => {
+    // Solo permitir números
+    e.target.value = e.target.value.replace(/\D/g, '');
+    // Limitar a 8 caracteres
+    if (e.target.value.length > 8) {
+      e.target.value = e.target.value.slice(0, 8);
+    }
+  });
+  
   // Preview de foto
   document.getElementById('usuarioFoto').addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -157,13 +168,20 @@ function renderizarTabla() {
       ? '<span class="badge badge-admin">Admin</span>' 
       : '<span class="badge badge-usuario">Usuario</span>';
     
-    const fotoHTML = u.foto_url 
-      ? `<img src="${u.foto_url}" class="foto-mini" alt="Foto">`
-      : `<div class="foto-mini" style="display:flex; align-items:center; justify-content:center; font-size:16px;">👤</div>`;
+    // Foto con clic para ampliar
+    let fotoHTML;
+    if (u.foto_url) {
+      fotoHTML = `<img src="${u.foto_url}" class="foto-mini" alt="Foto" data-foto-url="${u.foto_url}" data-nombre="${u.primer_nombre} ${u.primer_apellido}" title="Click para ampliar">`;
+    } else {
+      fotoHTML = `<div class="foto-placeholder">👤</div>`;
+    }
     
     const causaCorta = u.causa_sancion 
       ? (u.causa_sancion.length > 30 ? u.causa_sancion.substring(0, 30) + '...' : u.causa_sancion)
       : '<span style="color:#888;">-</span>';
+    
+    const causaTooltip = u.causa_sancion ? `data-full="${u.causa_sancion.replace(/"/g, '&quot;')}"` : '';
+    const causaClass = u.causa_sancion ? 'causa-tooltip' : '';
     
     const expediente = u.numero_expediente || '<span style="color:#888;">-</span>';
     
@@ -173,8 +191,8 @@ function renderizarTabla() {
       <td>${u.primer_nombre} ${u.primer_apellido}</td>
       <td>${u.jerarquia || '<span style="color:#888;">-</span>'}</td>
       <td>${badgeNivel}</td>
-      <td>${expediente}</td>
-      <td title="${u.causa_sancion || ''}">${causaCorta}</td>
+      <td style="font-size: 12px; font-family: monospace;">${expediente}</td>
+      <td class="${causaClass}" ${causaTooltip}>${causaCorta}</td>
       <td style="font-size: 12px; color: #666;">${fechaCreacion}</td>
       <td>
         <div style="display: flex; gap: 5px;">
@@ -185,6 +203,14 @@ function renderizarTabla() {
     `;
     
     tbody.appendChild(tr);
+    
+    // Event listener para foto clickeable
+    const fotoImg = tr.querySelector('.foto-mini');
+    if (fotoImg) {
+      fotoImg.addEventListener('click', () => {
+        abrirLightbox(fotoImg.dataset.fotoUrl, fotoImg.dataset.nombre);
+      });
+    }
     
     tr.querySelector('.btn-editar').addEventListener('click', () => abrirModalUsuario(u.id));
     tr.querySelector('.btn-eliminar').addEventListener('click', () => {
@@ -200,13 +226,51 @@ function renderizarTabla() {
   renderizarPaginacion(totalPaginas);
 }
 
+// ============================================
+// 5. LIGHTBOX PARA FOTO GRANDE
+// ============================================
+
+function abrirLightbox(fotoUrl, nombre) {
+  // Crear overlay del lightbox
+  const lightbox = document.createElement('div');
+  lightbox.className = 'lightbox-overlay';
+  lightbox.innerHTML = `
+    <button class="lightbox-close" title="Cerrar">×</button>
+    <img src="${fotoUrl}" class="lightbox-content" alt="${nombre}">
+    <div class="lightbox-info">${nombre}</div>
+  `;
+  
+  document.body.appendChild(lightbox);
+  
+  // Cerrar al hacer clic fuera de la imagen
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox || e.target.classList.contains('lightbox-close')) {
+      document.body.removeChild(lightbox);
+    }
+  });
+  
+  // Cerrar con tecla ESC
+  const cerrarConEsc = (e) => {
+    if (e.key === 'Escape') {
+      if (document.body.contains(lightbox)) {
+        document.body.removeChild(lightbox);
+      }
+      document.removeEventListener('keydown', cerrarConEsc);
+    }
+  };
+  document.addEventListener('keydown', cerrarConEsc);
+}
+
+// ============================================
+// 6. PAGINACIÓN
+// ============================================
+
 function renderizarPaginacion(totalPaginas) {
   const div = document.getElementById('paginacionUsuarios');
   div.innerHTML = '';
   
   if (totalPaginas <= 1) return;
   
-  // Botón anterior
   const btnAnt = document.createElement('button');
   btnAnt.textContent = '← Anterior';
   btnAnt.disabled = paginaActual === 1;
@@ -218,7 +282,6 @@ function renderizarPaginacion(totalPaginas) {
   });
   div.appendChild(btnAnt);
   
-  // Números de página
   let inicioPag = Math.max(1, paginaActual - 2);
   let finPag = Math.min(totalPaginas, inicioPag + 4);
   if (finPag - inicioPag < 4) inicioPag = Math.max(1, finPag - 4);
@@ -234,7 +297,6 @@ function renderizarPaginacion(totalPaginas) {
     div.appendChild(btn);
   }
   
-  // Botón siguiente
   const btnSig = document.createElement('button');
   btnSig.textContent = 'Siguiente →';
   btnSig.disabled = paginaActual === totalPaginas;
@@ -248,10 +310,10 @@ function renderizarPaginacion(totalPaginas) {
 }
 
 // ============================================
-// 5. CREAR/EDITAR USUARIO
+// 7. CREAR/EDITAR USUARIO
 // ============================================
 
-function abrirModalUsuario(usuarioId = null) {
+async function abrirModalUsuario(usuarioId = null) {
   const modal = document.getElementById('modalUsuario');
   const titulo = document.getElementById('modalUsuarioTitulo');
   
@@ -291,17 +353,38 @@ function abrirModalUsuario(usuarioId = null) {
     
     // La cédula no se puede cambiar al editar
     document.getElementById('usuarioCedula').disabled = true;
-    document.getElementById('usuarioCedula').style.background = '#f0f0f0';
     
   } else {
-    // Modo crear
+    // Modo crear - generar número de expediente automáticamente
     usuarioEditandoId = null;
     titulo.textContent = 'Nuevo Usuario';
     document.getElementById('usuarioCedula').disabled = false;
-    document.getElementById('usuarioCedula').style.background = 'white';
+    
+    // Generar siguiente número de expediente
+    const siguienteNumero = await generarSiguienteExpediente();
+    document.getElementById('usuarioExpediente').value = siguienteNumero;
   }
   
   modal.style.display = 'flex';
+}
+
+async function generarSiguienteExpediente() {
+  const añoActual = new Date().getFullYear().toString().slice(-2);
+  
+  // Buscar el número más alto en los expedientes existentes
+  let maxNumero = 0;
+  todosLosUsuarios.forEach(u => {
+    if (u.numero_expediente) {
+      const match = u.numero_expediente.match(/(\d+)/);
+      if (match) {
+        const num = parseInt(match[1]);
+        if (num > maxNumero) maxNumero = num;
+      }
+    }
+  });
+  
+  const siguienteNum = (maxNumero + 1).toString().padStart(5, '0');
+  return `ID-ZU-CPNB-${siguienteNum}-${añoActual}`;
 }
 
 async function guardarUsuario() {
@@ -309,20 +392,26 @@ async function guardarUsuario() {
   const expediente = document.getElementById('usuarioExpediente').value.trim();
   const nombre = document.getElementById('usuarioNombre').value.trim();
   const apellido = document.getElementById('usuarioApellido').value.trim();
-  const jerarquia = document.getElementById('usuarioJerarquia').value.trim();
+  const jerarquia = document.getElementById('usuarioJerarquia').value;
   const nivel = document.getElementById('usuarioNivel').value;
   const causaSancion = document.getElementById('usuarioCausaSancion').value.trim();
   const fotoFile = document.getElementById('usuarioFoto').files[0];
   
   // Validaciones
   if (!cedula || !nombre || !apellido) {
-    alert('Por favor completa los campos obligatorios: Cédula, Nombre y Apellido');
+    alert('Por favor completa los campos obligatorios: Cédula, Nombre, Apellido y Jerarquía');
     return;
   }
   
-  // Validar que la cédula sea numérica
-  if (!/^\d+$/.test(cedula)) {
-    alert('La cédula debe contener solo números');
+  // Validar cédula: 7-8 dígitos numéricos
+  if (!/^\d{7,8}$/.test(cedula)) {
+    alert('La cédula debe contener entre 7 y 8 dígitos numéricos');
+    return;
+  }
+  
+  // Validar jerarquía
+  if (!jerarquia) {
+    alert('Por favor selecciona una jerarquía');
     return;
   }
   
@@ -356,7 +445,7 @@ async function guardarUsuario() {
       cedula: cedula,
       primer_nombre: nombre,
       primer_apellido: apellido,
-      jerarquia: jerarquia || null,
+      jerarquia: jerarquia,
       nivel_acceso: nivel,
       numero_expediente: expediente || null,
       causa_sancion: causaSancion || null,
@@ -408,7 +497,7 @@ async function guardarUsuario() {
 }
 
 // ============================================
-// 6. ELIMINAR USUARIO
+// 8. ELIMINAR USUARIO
 // ============================================
 
 async function confirmarEliminar() {
@@ -419,7 +508,6 @@ async function confirmarEliminar() {
   btnConfirmar.textContent = 'Eliminando...';
   
   try {
-    // Eliminar foto del storage si existe
     const usuario = todosLosUsuarios.find(u => u.id === usuarioEliminandoId);
     if (usuario && usuario.foto_url) {
       try {
@@ -431,7 +519,6 @@ async function confirmarEliminar() {
       }
     }
     
-    // Eliminar usuario
     const { error } = await supabaseClient
       .from('usuarios')
       .delete()
