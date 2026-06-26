@@ -67,10 +67,14 @@ body {
   border-radius: 6px;
   font-size: 14px;
 }
+.form-control:disabled {
+  background: #f0f0f0;
+  cursor: not-allowed;
+}
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
 
-/* Tabla de usuarios */
+/* Tabla */
 .tabla-container {
   overflow-x: auto;
   background: white;
@@ -133,6 +137,87 @@ body {
   box-shadow: 0 10px 40px rgba(0,0,0,0.3);
 }
 
+/* Foto miniatura clickeable */
+.foto-mini {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #6b0f0f;
+  background: #ddd;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.foto-mini:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(107, 15, 15, 0.4);
+}
+.foto-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #6b0f0f;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: default;
+}
+
+/* Modal de foto grande (Lightbox) */
+.lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  cursor: pointer;
+}
+.lightbox-content {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 12px;
+  box-shadow: 0 0 50px rgba(255,255,255,0.2);
+}
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  color: white;
+  font-size: 40px;
+  cursor: pointer;
+  font-weight: bold;
+  background: rgba(107, 15, 15, 0.8);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+.lightbox-close:hover {
+  background: #6b0f0f;
+}
+.lightbox-info {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  background: rgba(107, 15, 15, 0.8);
+  padding: 10px 25px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
 /* Badges */
 .badge {
   display: inline-block;
@@ -180,16 +265,6 @@ body {
   border: 2px solid #4a0404;
 }
 
-/* Foto */
-.foto-mini {
-  width: 35px;
-  height: 35px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #6b0f0f;
-  background: #ddd;
-}
-
 /* Stats */
 .stats-bar {
   display: flex;
@@ -215,6 +290,39 @@ body {
   font-size: 12px;
   color: #888;
   margin: 5px 0 0;
+}
+
+/* Preview de foto */
+#fotoPreviewContainer {
+  text-align: center;
+  margin-top: 10px;
+}
+#fotoPreview {
+  max-width: 120px;
+  border-radius: 50%;
+  border: 3px solid #6b0f0f;
+}
+
+/* Tooltip de causa sanción */
+.causa-tooltip {
+  position: relative;
+  cursor: help;
+}
+.causa-tooltip:hover::after {
+  content: attr(data-full);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: normal;
+  width: 250px;
+  z-index: 100;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 @media (max-width: 768px) {
@@ -257,7 +365,7 @@ body {
 
     <div id="contadorUsuarios" style="text-align: center; color: #666; margin-bottom: 15px; font-size: 14px;"></div>
 
-    <!-- Tabla de usuarios -->
+    <!-- Tabla -->
     <div class="tabla-container">
       <table class="tabla-usuarios">
         <thead>
@@ -293,12 +401,12 @@ body {
     
     <div class="grid-2">
       <div class="form-group">
-        <label>Cédula: *</label>
-        <input type="text" id="usuarioCedula" class="form-control" placeholder="Ej: 19451800">
+        <label>Cédula: * <span style="font-size:11px; color:#888;">(7-8 dígitos numéricos)</span></label>
+        <input type="text" id="usuarioCedula" class="form-control" placeholder="Ej: 19451800" maxlength="8" inputmode="numeric">
       </div>
       <div class="form-group">
         <label>Número de Expediente:</label>
-        <input type="text" id="usuarioExpediente" class="form-control" placeholder="Ej: 00001">
+        <input type="text" id="usuarioExpediente" class="form-control" placeholder="ID-ZU-CPNB-00001-26">
       </div>
     </div>
 
@@ -315,8 +423,28 @@ body {
 
     <div class="grid-2">
       <div class="form-group">
-        <label>Jerarquía:</label>
-        <input type="text" id="usuarioJerarquia" class="form-control" placeholder="Ej: Inspector, Oficial, etc.">
+        <label>Jerarquía: *</label>
+        <select id="usuarioJerarquia" class="form-control">
+          <option value="">-- Seleccione una jerarquía --</option>
+          <optgroup label="Comisarios">
+            <option value="Comisario Superior">Comisario Superior</option>
+            <option value="Comisario Mayor">Comisario Mayor</option>
+            <option value="Comisario General">Comisario General</option>
+            <option value="Comisario Jefe">Comisario Jefe</option>
+            <option value="Primer Comisario">Primer Comisario</option>
+            <option value="Comisario">Comisario</option>
+          </optgroup>
+          <optgroup label="Inspectores">
+            <option value="Inspector Jefe">Inspector Jefe</option>
+            <option value="Primer Inspector">Primer Inspector</option>
+            <option value="Inspector">Inspector</option>
+          </optgroup>
+          <optgroup label="Oficiales">
+            <option value="Oficial Jefe">Oficial Jefe</option>
+            <option value="Primer Oficial">Primer Oficial</option>
+            <option value="Oficial">Oficial</option>
+          </optgroup>
+        </select>
       </div>
       <div class="form-group">
         <label>Nivel de Acceso: *</label>
@@ -335,8 +463,8 @@ body {
     <div class="form-group">
       <label>Foto de Perfil:</label>
       <input type="file" id="usuarioFoto" accept="image/*" class="form-control">
-      <div id="fotoPreviewContainer" style="margin-top: 10px; display: none;">
-        <img id="fotoPreview" style="max-width: 100px; border-radius: 50%; border: 2px solid #6b0f0f;">
+      <div id="fotoPreviewContainer" style="display: none;">
+        <img id="fotoPreview" alt="Preview">
       </div>
     </div>
 
