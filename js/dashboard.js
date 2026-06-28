@@ -2,7 +2,6 @@
 // DASHBOARD - VERSIÓN COMPLETA Y CORREGIDA
 // ============================================
 
-// --- VERIFICACIÓN DE SESIÓN ---
 const usuarioStr = sessionStorage.getItem('usuario');
 if (!usuarioStr) {
   window.location.href = 'index.html';
@@ -11,14 +10,11 @@ if (!usuarioStr) {
   inicializarDashboard(usuario);
 }
 
-// --- INICIALIZACIÓN DEL DASHBOARD ---
 function inicializarDashboard(user) {
-  // 1. Cargar datos del usuario en el Header
   document.getElementById('userName').textContent = `${user.nombre} ${user.apellido}`;
   document.getElementById('userJerarquia').textContent = user.jerarquia || 'Sin jerarquía';
   document.getElementById('userLevel').textContent = user.nivel_acceso || 'Usuario';
   
-  // 2. Formatear número de expediente
   let expedienteTexto = '';
   if (user.numero_expediente) {
     if (user.numero_expediente.includes('ID-ZU-CPNB')) {
@@ -34,7 +30,6 @@ function inicializarDashboard(user) {
     document.getElementById('welcomeText').textContent = `¡Bienvenido, ${user.nombre}!`;
   }
   
-  // 3. Mostrar causa de sanción
   const welcomeBanner = document.querySelector('.welcome-banner > div');
   if (welcomeBanner && user.causa_sancion && user.causa_sancion.trim() !== '') {
     const causaExistente = document.getElementById('causaSancion');
@@ -51,7 +46,6 @@ function inicializarDashboard(user) {
     }
   }
   
-  // 4. Cargar foto
   const photoImg = document.getElementById('userPhoto');
   if (user.foto_url) {
     photoImg.src = user.foto_url;
@@ -59,7 +53,6 @@ function inicializarDashboard(user) {
     photoImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23ddd"/><text x="50" y="55" font-size="40" text-anchor="middle" fill="%23888">👤</text></svg>';
   }
   
-  // 5. Control de Acceso
   if (user.nivel_acceso !== 'administrador') {
     const adminElements = document.querySelectorAll('.admin-only');
     adminElements.forEach(el => {
@@ -67,7 +60,6 @@ function inicializarDashboard(user) {
     });
   }
   
-  // 6. Lógica de Navegación (Tabs)
   const navButtons = document.querySelectorAll('.nav-btn');
   const fieldsets = document.querySelectorAll('.content-fieldset');
   
@@ -85,14 +77,12 @@ function inicializarDashboard(user) {
     });
   });
   
-  // 7. Botón de Cerrar Sesión
   document.getElementById('btnLogout').addEventListener('click', () => {
     if (confirm('¿Está seguro que desea cerrar sesión?')) {
       cerrarSesion();
     }
   });
   
-  // 8. Mostrar botón de Logs solo para Super Admin
   if (user.es_super_admin) {
     const btnLogs = document.getElementById('btnVerLogs');
     if (btnLogs) {
