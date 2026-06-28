@@ -23,6 +23,23 @@ async function cerrarSesion() {
   } catch (err) {
     console.error('Error:', err);
   }
+  // Registrar log de cierre de sesión
+if (typeof registrarLog === 'function') {
+  const usuarioStr = sessionStorage.getItem('usuario');
+  if (usuarioStr) {
+    const usuario = JSON.parse(usuarioStr);
+    registrarLog({
+      accion: 'Cierre de sesión',
+      modulo: 'Autenticación',
+      descripcion: `El usuario ${usuario.nombre} ${usuario.apellido} cerró sesión`,
+      detalles: { cedula: usuario.cedula }
+    }).then(() => {
+      sessionStorage.removeItem('usuario');
+      window.location.href = 'index.html';
+    });
+    return;
+  }
+}
   
   // Limpiar sessionStorage
   sessionStorage.removeItem('usuario');
