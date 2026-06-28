@@ -2,9 +2,6 @@
 // SISTEMA DE LOGS - REGISTRO DE ACTIVIDAD
 // ============================================
 
-/**
- * Registra una acción en el log del sistema (versión normal, asíncrona)
- */
 async function registrarLog({ accion, modulo, descripcion, detalles = null }) {
   try {
     const usuarioStr = sessionStorage.getItem('usuario');
