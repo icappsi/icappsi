@@ -39,7 +39,6 @@ function inicializarDashboard(user) {
   // 3. Mostrar causa de sanción debajo del mensaje de bienvenida
   const welcomeBanner = document.querySelector('.welcome-banner > div');
   if (welcomeBanner && user.causa_sancion && user.causa_sancion.trim() !== '') {
-    // Verificar si ya existe el div de causa de sanción
     const causaExistente = document.getElementById('causaSancion');
     if (!causaExistente) {
       const causaSancionDiv = document.createElement('div');
@@ -94,28 +93,30 @@ function inicializarDashboard(user) {
       cerrarSesion();
     }
   });
-}
-// 🆕 NUEVO: Mostrar botón de Logs solo para Super Admin
-if (user.es_super_admin) {
-  const btnLogs = document.getElementById('btnVerLogs');
-  if (btnLogs) {
-    btnLogs.style.display = 'inline-block';
-    btnLogs.addEventListener('click', () => {
-      window.open('html/logs.html', '_blank');
+  
+  // 🆕 8. NUEVO: Mostrar botón de Logs solo para Super Admin
+  // ESTOS BLOQUES ESTABAN FUERA DE LA FUNCIÓN, POR ESO FALLABA
+  if (user.es_super_admin) {
+    const btnLogs = document.getElementById('btnVerLogs');
+    if (btnLogs) {
+      btnLogs.style.display = 'inline-block';
+      btnLogs.addEventListener('click', () => {
+        window.open('html/logs.html', '_blank');
+      });
+    }
+  }
+
+  // 🆕 9. NUEVO: Registrar log de inicio de sesión
+  if (typeof registrarLog === 'function') {
+    registrarLog({
+      accion: 'Inicio de sesión',
+      modulo: 'Autenticación',
+      descripcion: `El usuario ${user.nombre} ${user.apellido} inició sesión en el sistema`,
+      detalles: {
+        cedula: user.cedula,
+        nivel: user.nivel_acceso,
+        es_super_admin: user.es_super_admin || false
+      }
     });
   }
-}
-
-// 🆕 NUEVO: Registrar log de inicio de sesión
-if (typeof registrarLog === 'function') {
-  registrarLog({
-    accion: 'Inicio de sesión',
-    modulo: 'Autenticación',
-    descripcion: `El usuario ${user.nombre} ${user.apellido} inició sesión en el sistema`,
-    detalles: {
-      cedula: user.cedula,
-      nivel: user.nivel_acceso,
-      es_super_admin: user.es_super_admin || false
-    }
-  });
 }
