@@ -24,7 +24,6 @@ document.getElementById('materialTipo').addEventListener('change', function() {
     archivoField.style.display = 'block';
     contenidoField.style.display = 'none';
     
-    // Configurar accept según el tipo
     if (tipo === 'imagen') {
       archivoInput.accept = 'image/*';
     } else if (tipo === 'video') {
@@ -41,7 +40,6 @@ document.getElementById('materialTipo').addEventListener('change', function() {
 // 2. EDITOR DE TEXTO ENRIQUECIDO
 // ============================================
 
-// Event listeners para botones del editor
 document.querySelectorAll('.editor-btn').forEach(btn => {
   btn.addEventListener('click', function(e) {
     e.preventDefault();
@@ -51,7 +49,6 @@ document.querySelectorAll('.editor-btn').forEach(btn => {
   });
 });
 
-// Aplicar color
 document.getElementById('applyColor').addEventListener('click', function(e) {
   e.preventDefault();
   const color = document.getElementById('colorPicker').value;
@@ -98,7 +95,6 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
   try {
     let archivoUrl = null;
     
-    // Si es documento, video, imagen o presentacion, subir el archivo
     if (tipo === 'documento' || tipo === 'video' || tipo === 'imagen' || tipo === 'presentacion') {
       const fileName = `${Date.now()}_${archivo.name}`;
       
@@ -116,7 +112,6 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
         throw new Error('Error al subir el archivo: ' + uploadError.message);
       }
       
-      // Confirmación visual de subida exitosa
       btnSubir.textContent = '✅ Archivo subido correctamente';
       btnSubir.style.background = '#28a745';
       
@@ -129,7 +124,6 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
       archivoUrl = urlData.publicUrl;
     }
     
-    // Guardar en la base de datos
     btnSubir.textContent = 'Guardando en base de datos...';
     btnSubir.style.background = '#6b0f0f';
     
@@ -160,11 +154,9 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
       });
     }
     
-    // Confirmación final exitosa
     btnSubir.textContent = '✅ ¡Material publicado exitosamente!';
     btnSubir.style.background = '#28a745';
     
-    // Limpiar formulario
     document.getElementById('materialTitulo').value = '';
     document.getElementById('materialDescripcion').value = '';
     document.getElementById('materialArchivo').value = '';
@@ -201,24 +193,7 @@ async function cargarMateriales() {
       .select('*')
       .order('fecha_creacion', { ascending: false });
     
-      if (error) throw error;
-    
-    // 🆕 REGISTRAR LOG DE CONFIRMACIÓN DE LECTURA
-    if (typeof registrarLog === 'function') {
-      await registrarLog({
-        accion: 'Confirmar lectura',
-        modulo: 'Confirmaciones',
-        descripcion: `Usuario confirmó lectura de material ID: ${materialId}`,
-        detalles: { 
-          material_id: materialId,
-          usuario_id: usuario.id,
-          usuario_nombre: `${usuario.nombre} ${usuario.apellido}`
-        }
-      });
-    }
-    
-    // Mostrar confirmación visual
-    btnElement.parentElement.innerHTML = `
+    if (error) throw error;
     
     if (!materiales || materiales.length === 0) {
       materialList.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;">No hay material disponible aún.</p>';
@@ -249,7 +224,6 @@ async function renderizarMaterialesPagina() {
   const materialesPagina = todosLosMateriales.slice(inicio, fin);
   const totalPaginas = Math.ceil(todosLosMateriales.length / materialesPorPagina);
   
-  // Cargar confirmaciones del usuario actual
   let materialesConfirmados = [];
   if (!esAdmin) {
     const { data: confirmaciones } = await supabaseClient
@@ -285,7 +259,6 @@ async function renderizarMaterialesPagina() {
     
     let contentHTML = '';
     
-    // --- BLOG CON PAGINACIÓN VISUAL ---
     if (material.tipo === 'blog') {
       const contenidoCompleto = material.contenido || '';
       
@@ -345,8 +318,6 @@ async function renderizarMaterialesPagina() {
         </div>
       `;
     }
-    
-    // --- VIDEO CON REPRODUCTOR EMBEBIDO ---
     else if (material.tipo === 'video') {
       contentHTML = `
         <div style="margin-top: 15px; background: #000; border-radius: 8px; overflow: hidden;">
@@ -369,8 +340,6 @@ async function renderizarMaterialesPagina() {
         </div>
       `;
     }
-    
-    // --- IMAGEN COMPLETA ---
     else if (material.tipo === 'imagen') {
       contentHTML = `
         <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; background: #f9f9f9;">
@@ -388,8 +357,6 @@ async function renderizarMaterialesPagina() {
         </div>
       `;
     }
-    
-    // --- PRESENTACIÓN POWERPOINT ---
     else if (material.tipo === 'presentacion') {
       contentHTML = `
         <div style="margin-top: 15px; padding: 25px; background: linear-gradient(135deg, #f9f9f9 0%, #e9e9e9 100%); border-radius: 8px; text-align: center; border: 2px dashed #6b0f0f;">
@@ -402,8 +369,6 @@ async function renderizarMaterialesPagina() {
         </div>
       `;
     }
-    
-    // --- DOCUMENTO (PDF u OTRO) ---
     else if (material.tipo === 'documento') {
       const esPDF = material.archivo_url.toLowerCase().endsWith('.pdf');
       
@@ -435,7 +400,6 @@ async function renderizarMaterialesPagina() {
       }
     }
     
-    // --- BOTÓN DE CONFIRMACIÓN DE LECTURA (SOLO PARA USUARIOS) ---
     const yaConfirmado = materialesConfirmados.includes(material.id);
     let confirmacionHTML = '';
     
@@ -470,7 +434,6 @@ async function renderizarMaterialesPagina() {
       }
     }
     
-    // --- BOTONES DE ACCIÓN (SOLO ADMIN) ---
     const actionButtons = esAdmin ? `
       <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
         <button class="btn-ver-confirmaciones" data-id="${material.id}" style="flex: 1; min-width: 120px; padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
@@ -501,7 +464,6 @@ async function renderizarMaterialesPagina() {
     
     materialList.appendChild(card);
     
-    // Inicializar paginación visual para blogs
     if (material.tipo === 'blog') {
       const blogPaginated = card.querySelector('.blog-paginated');
       if (blogPaginated) {
@@ -509,17 +471,15 @@ async function renderizarMaterialesPagina() {
       }
     }
     
-    // Event listener para botón de confirmar lectura
     if (!esAdmin && !yaConfirmado) {
       const btnConfirmar = card.querySelector('.btn-confirmar-lectura');
       if (btnConfirmar) {
         btnConfirmar.addEventListener('click', async () => {
-          await confirmarLectura(material.id, btnConfirmar);
+          await confirmarLectura(material.id, btnConfirmar, material.titulo);
         });
       }
     }
     
-    // Event listeners para botones de admin
     if (esAdmin) {
       const btnVerConfirmaciones = card.querySelector('.btn-ver-confirmaciones');
       const btnEditar = card.querySelector('.btn-editar');
@@ -539,7 +499,6 @@ async function renderizarMaterialesPagina() {
     }
   });
   
-  // --- CONTROLES DE PAGINACIÓN DE LISTA ---
   if (totalPaginas > 1) {
     const paginationDiv = document.createElement('div');
     paginationDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 30px; padding: 20px; flex-wrap: wrap;';
@@ -592,7 +551,6 @@ async function renderizarMaterialesPagina() {
     });
   }
   
-  // Contador de materiales
   const contadorDiv = document.createElement('div');
   contadorDiv.style.cssText = 'text-align: center; color: #666; margin-top: 15px; font-size: 14px;';
   contadorDiv.textContent = `Mostrando ${inicio + 1} - ${Math.min(fin, todosLosMateriales.length)} de ${todosLosMateriales.length} materiales`;
@@ -611,30 +569,30 @@ function inicializarPaginacionBlog(blogElement) {
   const pageInfo = blogElement.querySelector('.blog-page-info');
   
   const alturaPagina = 600;
-  let paginaActual = 0;
-  let totalPaginas = 1;
+  let paginaActualBlog = 0;
+  let totalPaginasBlog = 1;
   
   function calcularPaginas() {
     const alturaTotal = content.scrollHeight;
-    totalPaginas = Math.ceil(alturaTotal / alturaPagina);
+    totalPaginasBlog = Math.ceil(alturaTotal / alturaPagina);
     
-    if (totalPaginas < 1) totalPaginas = 1;
+    if (totalPaginasBlog < 1) totalPaginasBlog = 1;
     
     actualizarControles();
   }
   
   function actualizarControles() {
-    pageInfo.textContent = `Página ${paginaActual + 1} de ${totalPaginas}`;
+    pageInfo.textContent = `Página ${paginaActualBlog + 1} de ${totalPaginasBlog}`;
     
-    btnPrev.disabled = paginaActual === 0;
-    btnPrev.style.background = paginaActual === 0 ? '#ccc' : '#6b0f0f';
-    btnPrev.style.cursor = paginaActual === 0 ? 'not-allowed' : 'pointer';
+    btnPrev.disabled = paginaActualBlog === 0;
+    btnPrev.style.background = paginaActualBlog === 0 ? '#ccc' : '#6b0f0f';
+    btnPrev.style.cursor = paginaActualBlog === 0 ? 'not-allowed' : 'pointer';
     
-    btnNext.disabled = paginaActual === totalPaginas - 1;
-    btnNext.style.background = paginaActual === totalPaginas - 1 ? '#ccc' : '#6b0f0f';
-    btnNext.style.cursor = paginaActual === totalPaginas - 1 ? 'not-allowed' : 'pointer';
+    btnNext.disabled = paginaActualBlog === totalPaginasBlog - 1;
+    btnNext.style.background = paginaActualBlog === totalPaginasBlog - 1 ? '#ccc' : '#6b0f0f';
+    btnNext.style.cursor = paginaActualBlog === totalPaginasBlog - 1 ? 'not-allowed' : 'pointer';
     
-    if (totalPaginas === 1) {
+    if (totalPaginasBlog === 1) {
       blogElement.querySelector('.blog-pagination-controls').style.display = 'none';
     } else {
       blogElement.querySelector('.blog-pagination-controls').style.display = 'flex';
@@ -642,9 +600,9 @@ function inicializarPaginacionBlog(blogElement) {
   }
   
   function irAPagina(pagina) {
-    if (pagina < 0 || pagina >= totalPaginas) return;
+    if (pagina < 0 || pagina >= totalPaginasBlog) return;
     
-    paginaActual = pagina;
+    paginaActualBlog = pagina;
     const offset = pagina * alturaPagina;
     content.style.transform = `translateY(-${offset}px)`;
     content.style.transition = 'transform 0.3s ease';
@@ -653,14 +611,14 @@ function inicializarPaginacionBlog(blogElement) {
   }
   
   btnPrev.addEventListener('click', () => {
-    if (paginaActual > 0) {
-      irAPagina(paginaActual - 1);
+    if (paginaActualBlog > 0) {
+      irAPagina(paginaActualBlog - 1);
     }
   });
   
   btnNext.addEventListener('click', () => {
-    if (paginaActual < totalPaginas - 1) {
-      irAPagina(paginaActual + 1);
+    if (paginaActualBlog < totalPaginasBlog - 1) {
+      irAPagina(paginaActualBlog + 1);
     }
   });
   
@@ -670,10 +628,10 @@ function inicializarPaginacionBlog(blogElement) {
 }
 
 // ============================================
-// 7. CONFIRMAR LECTURA
+// 7. CONFIRMAR LECTURA (CON LOG)
 // ============================================
 
-async function confirmarLectura(materialId, btnElement) {
+async function confirmarLectura(materialId, btnElement, tituloMaterial) {
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   
   const confirmado = await showConfirm(
@@ -697,6 +655,21 @@ async function confirmarLectura(materialId, btnElement) {
     
     if (error) throw error;
     
+    // 🆕 REGISTRAR LOG DE CONFIRMACIÓN DE LECTURA
+    if (typeof registrarLog === 'function') {
+      await registrarLog({
+        accion: 'Confirmar lectura',
+        modulo: 'Confirmaciones',
+        descripcion: `Usuario ${usuario.nombre} ${usuario.apellido} confirmó lectura de: ${tituloMaterial || 'Material ID ' + materialId}`,
+        detalles: { 
+          material_id: materialId,
+          usuario_id: usuario.id,
+          usuario_nombre: `${usuario.nombre} ${usuario.apellido}`,
+          titulo_material: tituloMaterial
+        }
+      });
+    }
+    
     // Mostrar confirmación visual
     btnElement.parentElement.innerHTML = `
       <div style="padding: 12px; background: #d4edda; border: 2px solid #28a745; border-radius: 6px; text-align: center;">
@@ -715,10 +688,6 @@ async function confirmarLectura(materialId, btnElement) {
     await showAlert('Error', 'Error al confirmar: ' + error.message, 'error');
   }
 }
-
-// ============================================
-// 8. VER CONFIRMACIONES (SOLO ADMIN)
-// ============================================
 
 // ============================================
 // 8. VER CONFIRMACIONES CON PAGINACIÓN (SOLO ADMIN)
@@ -800,7 +769,6 @@ async function verConfirmaciones(materialId, titulo) {
     
     listaDiv.innerHTML = listaHTML;
     
-    // Renderizar controles de paginación
     if (totalPaginasConf > 1) {
       let paginacionHTML = `
         <button id="btnConfAnterior" ${paginaActualConf === 1 ? 'disabled' : ''} style="padding: 8px 15px; background: ${paginaActualConf === 1 ? '#ccc' : '#6b0f0f'}; color: white; border: none; border-radius: 4px; cursor: ${paginaActualConf === 1 ? 'not-allowed' : 'pointer'}; font-weight: 600;">
@@ -808,7 +776,6 @@ async function verConfirmaciones(materialId, titulo) {
         </button>
       `;
       
-      // Mostrar números de página (máximo 5 visibles)
       let inicioPag = Math.max(1, paginaActualConf - 2);
       let finPag = Math.min(totalPaginasConf, inicioPag + 4);
       if (finPag - inicioPag < 4) inicioPag = Math.max(1, finPag - 4);
@@ -829,7 +796,6 @@ async function verConfirmaciones(materialId, titulo) {
       
       paginacionDiv.innerHTML = paginacionHTML;
       
-      // Event listeners para paginación
       modal.querySelector('#btnConfAnterior').addEventListener('click', () => {
         if (paginaActualConf > 1) {
           paginaActualConf--;
@@ -863,7 +829,7 @@ async function verConfirmaciones(materialId, titulo) {
 }
 
 // ============================================
-// 9. ELIMINAR MATERIAL CON MODAL
+// 9. ELIMINAR MATERIAL CON MODAL (CON LOG)
 // ============================================
 
 async function eliminarMaterial(id, titulo) {
@@ -1022,7 +988,7 @@ async function editarMaterial(id) {
 }
 
 // ============================================
-// 11. GUARDAR EDICIÓN
+// 11. GUARDAR EDICIÓN (CON LOG)
 // ============================================
 
 async function guardarEdicion(id, materialOriginal) {
@@ -1086,7 +1052,7 @@ async function guardarEdicion(id, materialOriginal) {
       .update(updateData)
       .eq('id', id);
     
-         if (updateError) throw updateError;
+    if (updateError) throw updateError;
     
     // 🆕 REGISTRAR LOG DE EDICIÓN DE MATERIAL
     if (typeof registrarLog === 'function') {
