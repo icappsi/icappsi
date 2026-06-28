@@ -14,6 +14,13 @@ let todosLosUsuarios = [];
 let todosLosIntentos = [];
 let pruebaIdActual = null;
 
+// 🆕 NUEVO: Función auxiliar para verificar si una prueba está expirada
+function pruebaExpirada(prueba) {
+  if (!prueba.fecha_fin) return false;
+  const ahora = new Date();
+  return new Date(prueba.fecha_fin) < ahora;
+}
+
 // ============================================
 // 1. INICIALIZACIÓN
 // ============================================
@@ -173,36 +180,26 @@ function filtrarUsuarios(filtro) {
         await supabaseClient.from('pruebas_usuarios').insert({ prueba_id: pruebaIdActual, usuario_id: u.id });
         u.asignado = true;
         
-        // 🆕 REGISTRAR LOG DE ASIGNAR USUARIO A PRUEBA
         if (typeof registrarLog === 'function') {
           const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaIdActual).single();
           await registrarLog({
             accion: 'Asignar usuario a prueba',
             modulo: 'Pruebas',
             descripcion: `Usuario ${u.primer_nombre} ${u.primer_apellido} habilitado para prueba: ${pruebaData?.titulo || 'ID ' + pruebaIdActual}`,
-            detalles: { 
-              usuario_id: u.id,
-              usuario_cedula: u.cedula,
-              prueba_id: pruebaIdActual
-            }
+            detalles: { usuario_id: u.id, usuario_cedula: u.cedula, prueba_id: pruebaIdActual }
           });
         }
       } else {
         await supabaseClient.from('pruebas_usuarios').delete().eq('prueba_id', pruebaIdActual).eq('usuario_id', u.id);
         u.asignado = false;
         
-        // 🆕 REGISTRAR LOG DE DESASIGNAR USUARIO DE PRUEBA
         if (typeof registrarLog === 'function') {
           const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaIdActual).single();
           await registrarLog({
             accion: 'Desasignar usuario de prueba',
             modulo: 'Pruebas',
             descripcion: `Usuario ${u.primer_nombre} ${u.primer_apellido} deshabilitado de prueba: ${pruebaData?.titulo || 'ID ' + pruebaIdActual}`,
-            detalles: { 
-              usuario_id: u.id,
-              usuario_cedula: u.cedula,
-              prueba_id: pruebaIdActual
-            }
+            detalles: { usuario_id: u.id, usuario_cedula: u.cedula, prueba_id: pruebaIdActual }
           });
         }
       }
@@ -259,20 +256,13 @@ function filtrarResultados(filtro) {
       if (confirm('¿Rehabilitar esta prueba?')) {
         await supabaseClient.from('intentos_pruebas').delete().eq('id', i.id);
         
-        // 🆕 REGISTRAR LOG DE REHABILITAR INTENTO
         if (typeof registrarLog === 'function') {
           const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaIdActual).single();
           await registrarLog({
             accion: 'Rehabilitar intento de prueba',
             modulo: 'Pruebas',
             descripcion: `Intento rehabilitado para ${i.usuarios.primer_nombre} ${i.usuarios.primer_apellido} en prueba: ${pruebaData?.titulo || 'ID ' + pruebaIdActual}`,
-            detalles: { 
-              intento_id: i.id,
-              usuario_id: i.usuario_id,
-              usuario_cedula: i.usuarios.cedula,
-              prueba_id: pruebaIdActual,
-              puntuacion_anterior: i.puntuacion
-            }
+            detalles: { intento_id: i.id, usuario_id: i.usuario_id, usuario_cedula: i.usuarios.cedula, prueba_id: pruebaIdActual, puntuacion_anterior: i.puntuacion }
           });
         }
         
@@ -312,7 +302,7 @@ function deseleccionarTodosUsuarios() {
 }
 
 // ============================================
-// 5. CRUD PRUEBAS
+// 5. CRUD PRUEBAS (CON VALIDACIÓN DE FECHAS)
 // ============================================
 
 async function cargarPruebasAdmin() {
@@ -327,29 +317,63 @@ async function cargarPruebasAdmin() {
   }
   
   lista.innerHTML = '';
+  const ahora = new Date();
+  
   pruebas.forEach(prueba => {
     const card = document.createElement('div');
     card.className = 'card';
+    
+    // 🆕 NUEVO: Detectar estado real de la prueba
+    const estaExpirada = pruebaExpirada(prueba);
+    const futura = new Date(prueba.fecha_inicio) > ahora;
+    
+    // Determinar badge de estado
+    let estadoBadge = '';
+    let cardBorderColor = '';
+    if (estaExpirada) {
+      estadoBadge = '<span style="padding:4px 12px; background:#6c757d; color:white; border-radius:12px; font-size:12px; font-weight:600;">⏰ Expirada</span>';
+      cardBorderColor = 'border-left: 5px solid #6c757d;';
+    } else if (!prueba.activa) {
+      estadoBadge = '<span style="padding:4px 12px; background:#dc3545; color:white; border-radius:12px; font-size:12px; font-weight:600;">Inactiva</span>';
+      cardBorderColor = 'border-left: 5px solid #dc3545;';
+    } else if (futura) {
+      estadoBadge = '<span style="padding:4px 12px; background:#ffc107; color:#333; border-radius:12px; font-size:12px; font-weight:600;">📅 Programada</span>';
+      cardBorderColor = 'border-left: 5px solid #ffc107;';
+    } else {
+      estadoBadge = '<span style="padding:4px 12px; background:#28a745; color:white; border-radius:12px; font-size:12px; font-weight:600;">✅ Activa</span>';
+      cardBorderColor = 'border-left: 5px solid #28a745;';
+    }
+    
+    // 🆕 NUEVO: Mensaje de advertencia si está expirada
+    let mensajeExpirada = '';
+    if (estaExpirada) {
+      mensajeExpirada = `
+        <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:10px; margin-top:10px; font-size:13px; color:#856404;">
+          ⚠️ <strong>Esta prueba expiró el ${new Date(prueba.fecha_fin).toLocaleString()}</strong>. Para reactivarla, haz clic en "Editar" y cambia obligatoriamente las fechas.
+        </div>
+      `;
+    }
+    
+    card.style.cssText = cardBorderColor;
     card.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
         <div>
           <h3 style="color:#4a0404; margin:0;">${prueba.titulo}</h3>
           <p style="color:#666; font-size:14px; margin:5px 0;">${prueba.descripcion || 'Sin descripción'}</p>
         </div>
-        <span style="padding:4px 12px; background:${prueba.activa ? '#28a745' : '#dc3545'}; color:white; border-radius:12px; font-size:12px;">
-          ${prueba.activa ? 'Activa' : 'Inactiva'}
-        </span>
+        ${estadoBadge}
       </div>
       <div style="font-size:13px; color:#888; margin-bottom:15px;">
         <p><strong>Inicio:</strong> ${new Date(prueba.fecha_inicio).toLocaleString()}</p>
         <p><strong>Fin:</strong> ${new Date(prueba.fecha_fin).toLocaleString()}</p>
         <p><strong>Tiempo:</strong> ${prueba.tiempo_limite > 0 ? prueba.tiempo_limite + ' min' : 'Sin límite'}</p>
       </div>
+      ${mensajeExpirada}
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
         <button class="btn btn-info btn-gestionar" data-id="${prueba.id}">📝 Preguntas</button>
         <button class="btn btn-success btn-asignar" data-id="${prueba.id}">👥 Asignar</button>
         <button class="btn btn-primary btn-resultados" data-id="${prueba.id}">📊 Resultados</button>
-        <button class="btn btn-warning btn-editar-prueba" data-id="${prueba.id}">✏️ Editar</button>
+        <button class="btn btn-warning btn-editar-prueba" data-id="${prueba.id}" data-expirada="${estaExpirada}">✏️ Editar</button>
         <button class="btn btn-danger btn-eliminar-prueba" data-id="${prueba.id}" data-titulo="${prueba.titulo}">🗑️ Eliminar</button>
       </div>
     `;
@@ -367,6 +391,10 @@ function abrirModalPrueba(pruebaId = null) {
   const modal = document.getElementById('modalPrueba');
   const tituloModal = document.getElementById('modalPruebaTitulo');
   
+  // 🆕 NUEVO: Limpiar mensaje de advertencia anterior
+  const mensajeAnterior = modal.querySelector('.mensaje-prueba-expirada');
+  if (mensajeAnterior) mensajeAnterior.remove();
+  
   if (pruebaId) {
     supabaseClient.from('pruebas').select('*').eq('id', pruebaId).single().then(({ data }) => {
       if (!data) return;
@@ -378,6 +406,24 @@ function abrirModalPrueba(pruebaId = null) {
       document.getElementById('pruebaTiempo').value = data.tiempo_limite || 0;
       document.getElementById('pruebaActiva').checked = data.activa;
       modal.dataset.editId = pruebaId;
+      
+      // 🆕 NUEVO: Guardar fechas originales para comparar al guardar
+      modal.dataset.fechaInicioOriginal = data.fecha_inicio;
+      modal.dataset.fechaFinOriginal = data.fecha_fin;
+      modal.dataset.expirada = pruebaExpirada(data) ? 'true' : 'false';
+      
+      // 🆕 NUEVO: Si está expirada, mostrar advertencia y forzar cambio de fechas
+      if (pruebaExpirada(data)) {
+        const alerta = document.createElement('div');
+        alerta.className = 'mensaje-prueba-expirada';
+        alerta.style.cssText = 'background:#fff3cd; border:2px solid #ffc107; border-radius:6px; padding:12px; margin-bottom:15px; color:#856404; font-size:13px;';
+        alerta.innerHTML = `
+          <strong>⚠️ Esta prueba está EXPIRADA</strong><br>
+          Para reactivarla, DEBES cambiar obligatoriamente las fechas de inicio y/o fin a fechas futuras.
+        `;
+        modal.querySelector('div').insertBefore(alerta, modal.querySelector('div').children[1]);
+      }
+      
       modal.style.display = 'flex';
     });
   } else {
@@ -389,6 +435,9 @@ function abrirModalPrueba(pruebaId = null) {
     document.getElementById('pruebaTiempo').value = 0;
     document.getElementById('pruebaActiva').checked = true;
     delete modal.dataset.editId;
+    delete modal.dataset.fechaInicioOriginal;
+    delete modal.dataset.fechaFinOriginal;
+    delete modal.dataset.expirada;
     modal.style.display = 'flex';
   }
 }
@@ -415,6 +464,44 @@ async function guardarPrueba() {
   const editId = modal.dataset.editId;
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   
+  // 🆕 NUEVO: Validaciones de fecha según si es nueva o edición
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const fechaInicioDate = new Date(fechaInicio);
+  fechaInicioDate.setHours(0, 0, 0, 0);
+  
+  if (!editId) {
+    // NUEVA PRUEBA: No permitir fechas anteriores a hoy
+    if (fechaInicioDate < hoy) {
+      alert('⚠️ No se puede crear una prueba con fecha de inicio anterior a hoy.\n\nFecha de inicio seleccionada: ' + new Date(fechaInicio).toLocaleDateString());
+      return;
+    }
+  } else {
+    // EDICIÓN: Si la prueba estaba expirada, obligar a cambiar las fechas
+    const estabaExpirada = modal.dataset.expirada === 'true';
+    
+    if (estabaExpirada) {
+      const fechaInicioOriginal = modal.dataset.fechaInicioOriginal;
+      const fechaFinOriginal = modal.dataset.fechaFinOriginal;
+      
+      const nuevasFechasIguales = 
+        new Date(fechaInicio).toISOString() === new Date(fechaInicioOriginal).toISOString() &&
+        new Date(fechaFin).toISOString() === new Date(fechaFinOriginal).toISOString();
+      
+      if (nuevasFechasIguales) {
+        alert('⚠️ Esta prueba está EXPIRADA.\n\nPara reactivarla, DEBES cambiar al menos una de las fechas (inicio o fin) a una fecha futura.\n\nNo puedes guardar la prueba con las mismas fechas expiradas.');
+        return;
+      }
+      
+      // Si las fechas cambiaron pero siguen siendo pasadas
+      const fechaFinDate = new Date(fechaFin);
+      if (fechaFinDate < new Date()) {
+        alert('⚠️ La nueva fecha de fin también está en el pasado.\n\nPara reactivar la prueba, la fecha de fin debe ser futura.');
+        return;
+      }
+    }
+  }
+  
   let error;
   if (editId) {
     ({ error } = await supabaseClient.from('pruebas').update({
@@ -436,20 +523,12 @@ async function guardarPrueba() {
   if (error) {
     alert('Error: ' + error.message);
   } else {
-    // 🆕 REGISTRAR LOG DE CREAR/EDITAR PRUEBA
     if (typeof registrarLog === 'function') {
       await registrarLog({
         accion: editId ? 'Editar prueba' : 'Crear prueba',
         modulo: 'Pruebas',
         descripcion: `${editId ? 'Prueba modificada' : 'Prueba creada'}: ${titulo}`,
-        detalles: { 
-          titulo: titulo,
-          descripcion: descripcion,
-          tiempo_limite: tiempoLimite,
-          activa: activa,
-          fecha_inicio: fechaInicio,
-          fecha_fin: fechaFin
-        }
+        detalles: { titulo, descripcion, tiempo_limite: tiempoLimite, activa, fecha_inicio: fechaInicio, fecha_fin: fechaFin }
       });
     }
     
@@ -470,16 +549,12 @@ async function eliminarPrueba(id, titulo) {
   if (error) {
     alert('Error: ' + error.message);
   } else {
-    // 🆕 REGISTRAR LOG DE ELIMINAR PRUEBA
     if (typeof registrarLog === 'function') {
       await registrarLog({
         accion: 'Eliminar prueba',
         modulo: 'Pruebas',
         descripcion: `Prueba eliminada: ${titulo}`,
-        detalles: { 
-          id: id,
-          titulo: titulo
-        }
+        detalles: { id, titulo }
       });
     }
     
@@ -537,18 +612,13 @@ async function cargarPreguntas(pruebaId) {
       if (confirm('¿Eliminar esta pregunta?')) {
         await supabaseClient.from('preguntas').delete().eq('id', p.id);
         
-        // 🆕 REGISTRAR LOG DE ELIMINAR PREGUNTA
         if (typeof registrarLog === 'function') {
           const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaId).single();
           await registrarLog({
             accion: 'Eliminar pregunta',
             modulo: 'Pruebas',
             descripcion: `Pregunta eliminada de: ${pruebaData?.titulo || 'Prueba ID ' + pruebaId}`,
-            detalles: { 
-              pregunta_id: p.id,
-              prueba_id: pruebaId,
-              pregunta_texto: p.pregunta.substring(0, 100)
-            }
+            detalles: { pregunta_id: p.id, prueba_id: pruebaId, pregunta_texto: p.pregunta.substring(0, 100) }
           });
         }
         
@@ -754,19 +824,13 @@ async function guardarPregunta() {
   if (error) {
     alert('Error: ' + error.message);
   } else {
-    // 🆕 REGISTRAR LOG DE CREAR/EDITAR PREGUNTA
     if (typeof registrarLog === 'function') {
       const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaId).single();
       await registrarLog({
         accion: editId ? 'Editar pregunta' : 'Crear pregunta',
         modulo: 'Pruebas',
         descripcion: `${editId ? 'Pregunta modificada' : 'Pregunta creada'} en prueba: ${pruebaData?.titulo || 'ID ' + pruebaId}`,
-        detalles: { 
-          prueba_id: pruebaId,
-          tipo: tipo,
-          puntos: puntos,
-          pregunta: preguntaTexto.substring(0, 100)
-        }
+        detalles: { prueba_id: pruebaId, tipo: tipo, puntos: puntos, pregunta: preguntaTexto.substring(0, 100) }
       });
     }
     
@@ -1058,20 +1122,12 @@ async function iniciarPrueba(pruebaId) {
     .insert({ prueba_id: pruebaId, usuario_id: usuario.id, estado: 'en_progreso', total_preguntas: preguntas.length })
     .select().single();
   
-  // 🆕 REGISTRAR LOG DE INICIAR PRUEBA
   if (typeof registrarLog === 'function') {
     await registrarLog({
       accion: 'Iniciar prueba',
       modulo: 'Pruebas',
       descripcion: `Usuario ${usuario.nombre} ${usuario.apellido} inició prueba: ${prueba.titulo}`,
-      detalles: { 
-        prueba_id: pruebaId,
-        prueba_titulo: prueba.titulo,
-        usuario_id: usuario.id,
-        usuario_cedula: usuario.cedula,
-        total_preguntas: preguntas.length,
-        tiempo_limite: prueba.tiempo_limite
-      }
+      detalles: { prueba_id: pruebaId, prueba_titulo: prueba.titulo, usuario_id: usuario.id, usuario_cedula: usuario.cedula, total_preguntas: preguntas.length, tiempo_limite: prueba.tiempo_limite }
     });
   }
   
@@ -1190,8 +1246,6 @@ async function enviarPrueba() {
   });
   
   const pct = totalPuntos > 0 ? (puntosObtenidos / totalPuntos) * 100 : 0;
-  
-  // 🆕 DECLARAR resultado ANTES de usarlo
   const resultado = pct >= 60 ? 'APROBADO' : 'REPROBADO';
   
   await supabaseClient.from('intentos_pruebas')
@@ -1204,23 +1258,13 @@ async function enviarPrueba() {
     })
     .eq('prueba_id', pruebaActual.id);
   
-  // 🆕 REGISTRAR LOG DE COMPLETAR PRUEBA
   if (typeof registrarLog === 'function') {
     const usuario = JSON.parse(sessionStorage.getItem('usuario'));
     await registrarLog({
       accion: 'Completar prueba',
       modulo: 'Pruebas',
       descripcion: `Usuario ${usuario.nombre} ${usuario.apellido} completó prueba: ${pruebaActual.titulo} - ${resultado}`,
-      detalles: { 
-        prueba_id: pruebaActual.id,
-        prueba_titulo: pruebaActual.titulo,
-        usuario_id: usuario.id,
-        usuario_cedula: usuario.cedula,
-        puntuacion: pct,
-        respuestas_correctas: correctas,
-        total_preguntas: preguntasActuales.length,
-        resultado: resultado
-      }
+      detalles: { prueba_id: pruebaActual.id, prueba_titulo: pruebaActual.titulo, usuario_id: usuario.id, usuario_cedula: usuario.cedula, puntuacion: pct, respuestas_correctas: correctas, total_preguntas: preguntasActuales.length, resultado }
     });
   }
   
