@@ -95,3 +95,27 @@ function inicializarDashboard(user) {
     }
   });
 }
+// 🆕 NUEVO: Mostrar botón de Logs solo para Super Admin
+if (user.es_super_admin) {
+  const btnLogs = document.getElementById('btnVerLogs');
+  if (btnLogs) {
+    btnLogs.style.display = 'inline-block';
+    btnLogs.addEventListener('click', () => {
+      window.open('html/logs.html', '_blank');
+    });
+  }
+}
+
+// 🆕 NUEVO: Registrar log de inicio de sesión
+if (typeof registrarLog === 'function') {
+  registrarLog({
+    accion: 'Inicio de sesión',
+    modulo: 'Autenticación',
+    descripcion: `El usuario ${user.nombre} ${user.apellido} inició sesión en el sistema`,
+    detalles: {
+      cedula: user.cedula,
+      nivel: user.nivel_acceso,
+      es_super_admin: user.es_super_admin || false
+    }
+  });
+}
