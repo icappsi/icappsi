@@ -119,20 +119,21 @@ function renderizarTabla() {
     const tr = document.createElement('tr');
     const fecha = new Date(log.fecha).toLocaleString('es-VE');
     
-    // Determinar badge de acción
-    let badgeAccion;
-    const accionLower = log.accion.toLowerCase();
-    if (accionLower.includes('login') || accionLower.includes('sesión')) {
-      badgeAccion = '<span class="badge-accion badge-login">🟢 Login</span>';
-    } else if (accionLower.includes('crear') || accionLower.includes('creación')) {
-      badgeAccion = '<span class="badge-accion badge-crear">🔵 Crear</span>';
-    } else if (accionLower.includes('editar') || accionLower.includes('edición') || accionLower.includes('actualizar')) {
-      badgeAccion = '<span class="badge-accion badge-editar">🟡 Editar</span>';
-    } else if (accionLower.includes('eliminar') || accionLower.includes('eliminación')) {
-      badgeAccion = '<span class="badge-accion badge-eliminar">🔴 Eliminar</span>';
-    } else {
-      badgeAccion = '<span class="badge-accion badge-otro">⚪ Otro</span>';
-    }
+let badgeAccion;
+const accionLower = log.accion.toLowerCase();
+if (accionLower === 'logout' || accionLower.includes('logout')) {
+  badgeAccion = '<span class="badge-accion badge-logout">🔴 Logout</span>';
+} else if (accionLower.includes('login') || (accionLower.includes('sesión') && !accionLower.includes('cerró'))) {
+  badgeAccion = '<span class="badge-accion badge-login">🟢 Login</span>';
+} else if (accionLower.includes('crear') || accionLower.includes('creación')) {
+  badgeAccion = '<span class="badge-accion badge-crear"> Crear</span>';
+} else if (accionLower.includes('editar') || accionLower.includes('edición') || accionLower.includes('actualizar')) {
+  badgeAccion = '<span class="badge-accion badge-editar">🟡 Editar</span>';
+} else if (accionLower.includes('eliminar') || accionLower.includes('eliminación')) {
+  badgeAccion = '<span class="badge-accion badge-eliminar">🔴 Eliminar</span>';
+} else {
+  badgeAccion = '<span class="badge-accion badge-otro">⚪ Otro</span>';
+}
     
     const badgeModulo = log.modulo ? `<span class="badge-modulo">${log.modulo}</span>` : '<span style="color:#888;">-</span>';
     
