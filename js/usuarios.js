@@ -82,6 +82,30 @@ function configurarEventos() {
       reader.readAsDataURL(file);
     }
   });
+  // Mostrar campo de contraseña al marcar Super Admin
+const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
+if (checkboxSuperAdmin) {
+  checkboxSuperAdmin.addEventListener('change', (e) => {
+    const passwordContainer = document.getElementById('passwordContainer');
+    const passwordLabel = document.getElementById('passwordLabel');
+    
+    if (e.target.checked) {
+      // Al marcar Super Admin, forzar nivel administrador y mostrar contraseña
+      document.getElementById('usuarioNivel').value = 'administrador';
+      passwordContainer.style.display = 'block';
+      passwordLabel.innerHTML = '🔑 Contraseña de Super Administrador: *';
+      passwordLabel.style.color = '#d4af37';
+    } else {
+      // Si se desmarca y no hay otra razón para mostrar contraseña, ocultar
+      const nivel = document.getElementById('usuarioNivel').value;
+      if (nivel !== 'administrador') {
+        passwordContainer.style.display = 'none';
+        passwordLabel.innerHTML = 'Contraseña de Administrador: *';
+        passwordLabel.style.color = '#4a0404';
+      }
+    }
+  });
+}
 }
 
 // ============================================
@@ -157,10 +181,14 @@ function renderizarTabla() {
   pagina.forEach(u => {
     const tr = document.createElement('tr');
     const fechaCreacion = u.creado_en ? new Date(u.creado_en).toLocaleString('es-VE') : 'N/A';
-    const badgeNivel = u.nivel_acceso === 'administrador' 
-      ? '<span class="badge badge-admin">Admin</span>' 
-      : '<span class="badge badge-usuario">Usuario</span>';
-    
+   let badgeNivel;
+if (u.es_super_admin) {
+  badgeNivel = '<span class="badge badge-superadmin">⭐ Super Admin</span>';
+} else if (u.nivel_acceso === 'administrador') {
+  badgeNivel = '<span class="badge badge-admin">Admin</span>';
+} else {
+  badgeNivel = '<span class="badge badge-usuario">Usuario</span>';
+}
     let fotoHTML;
     if (u.foto_url) {
       fotoHTML = `<img src="${u.foto_url}" class="foto-mini" alt="Foto" data-foto-url="${u.foto_url}" data-nombre="${u.primer_nombre} ${u.primer_apellido}" title="Click para ampliar">`;
@@ -577,6 +605,7 @@ async function guardarUsuario() {
 async function generarSiguienteExpediente() {
   const añoActual = new Date().getFullYear().toString().slice(-2);
   
+  // Buscar el número más alto en los expedientes existentes
   let maxNumero = 0;
   todosLosUsuarios.forEach(u => {
     if (u.numero_expediente) {
@@ -588,7 +617,8 @@ async function generarSiguienteExpediente() {
     }
   });
   
-  const siguienteNum = (maxNumero + 1).toString().padStart(5, '0');
+  // Formato con 4 dígitos (ej: 0002 en lugar de 00002)
+  const siguienteNum = (maxNumero + 1).toString().padStart(4, '0');
   return `ID-ZU-CPNB-${siguienteNum}-${añoActual}`;
 }
 
