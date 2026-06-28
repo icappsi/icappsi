@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usuarios Eliminados - ICAP</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗑️</text></svg>">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f4f6f9;
+  color: #333;
+  min-height: 100vh;
+}
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.header {
+  background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 100%);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 30px;
+  border-radius: 8px;
+}
+.header h1 { font-size: 24px; margin-bottom: 5px; }
+.header p { font-size: 14px; opacity: 0.9; }
+
+.warning-banner {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.warning-banner .icon { font-size: 24px; }
+.warning-banner .text { flex: 1; }
+.warning-banner .text strong { color: #856404; }
+
+.card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.tabla-container {
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.tabla-usuarios {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.tabla-usuarios thead {
+  background: linear-gradient(135deg, #4a0404 0%, #6b0f0f 100%);
+  color: white;
+}
+.tabla-usuarios th {
+  padding: 12px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.tabla-usuarios td {
+  padding: 10px;
+  border-bottom: 1px solid #e0e0e0;
+  vertical-align: middle;
+}
+.tabla-usuarios tbody tr:hover {
+  background: #fff5f5;
+}
+.tabla-usuarios tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.foto-mini {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #888;
+  background: #ddd;
+}
+.foto-placeholder {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 2px solid #888;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-admin { background: #6b0f0f; color: white; }
+.badge-usuario { background: #0066cc; color: white; }
+.badge-superadmin { 
+  background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%); 
+  color: #4a0404;
+  border: 1px solid #b8860b;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.pagination button {
+  padding: 8px 15px;
+  background: #6b0f0f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.pagination button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+.pagination .page-num {
+  width: 35px;
+  height: 35px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pagination .page-num.active {
+  background: #4a0404;
+  border: 2px solid #4a0404;
+}
+
+.buscador-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.buscador {
+  flex: 1;
+  min-width: 250px;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.buscador:focus {
+  outline: none;
+  border-color: #6b0f0f;
+}
+.btn-refrescar {
+  padding: 10px 20px;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-refrescar:hover {
+  background: #0052a3;
+}
+.btn-volver {
+  padding: 10px 20px;
+  background: #888;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-volver:hover {
+  background: #666;
+}
+
+.stats-bar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.stat-card {
+  flex: 1;
+  min-width: 200px;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #dc3545;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  text-align: center;
+}
+.stat-card h3 {
+  font-size: 32px;
+  color: #dc3545;
+  margin: 0;
+}
+.stat-card p {
+  font-size: 12px;
+  color: #888;
+  margin: 5px 0 0;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .stats-bar { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>🗑️ Historial de Usuarios Eliminados</h1>
+    <p>Programa de Supervisión Intensiva - ICAP</p>
+  </div>
+
+  <!-- Banner de advertencia -->
+  <div class="warning-banner">
+    <div class="icon">⚠️</div>
+    <div class="text">
+      <strong>Acceso Restringido:</strong> Solo Super Administradores pueden ver este historial.
+      <p style="margin: 5px 0 0; font-size: 12px; color: #856404;">Esta lista muestra todos los usuarios que han sido eliminados del sistema como respaldo de seguridad.</p>
+    </div>
+    <button class="btn-volver" onclick="window.close()">← Cerrar</button>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <h3 id="statTotal">0</h3>
+      <p>Total de Usuarios Eliminados</p>
+    </div>
+  </div>
+
+  <!-- Panel de búsqueda -->
+  <div class="card">
+    <div class="buscador-container">
+      <input type="text" id="buscadorEliminados" class="buscador" placeholder="🔍 Buscar por cédula, nombre, apellido o expediente...">
+      <button class="btn-refrescar" onclick="cargarUsuariosEliminados()">🔄 Refrescar</button>
+    </div>
+    
+    <div id="contadorUsuarios" style="text-align: center; color: #666; margin-bottom: 15px; font-size: 14px;"></div>
+    
+    <div class="tabla-container">
+      <table class="tabla-usuarios">
+        <thead>
+          <tr>
+            <th>Foto</th>
+            <th>Cédula</th>
+            <th>Nombre Completo</th>
+            <th>Jerarquía</th>
+            <th>Nivel</th>
+            <th>N° Expediente</th>
+            <th>Fecha Eliminación</th>
+            <th>Razón</th>
+          </tr>
+        </thead>
+        <tbody id="tablaUsuariosBody">
+          <tr>
+            <td colspan="8" class="loading">Cargando usuarios eliminados...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div id="paginacionUsuarios" class="pagination"></div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/usuarios_eliminados.js"></script>
+</body>
+</html>
