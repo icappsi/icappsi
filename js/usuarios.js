@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   configurarEventos();
   cargarUsuarios();
 });
+
 // ============================================
 // 2. CONFIGURACIÓN DE EVENTOS
 // ============================================
@@ -82,30 +83,53 @@ function configurarEventos() {
       reader.readAsDataURL(file);
     }
   });
+  
   // Mostrar campo de contraseña al marcar Super Admin
-const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
-if (checkboxSuperAdmin) {
-  checkboxSuperAdmin.addEventListener('change', (e) => {
-    const passwordContainer = document.getElementById('passwordContainer');
-    const passwordLabel = document.getElementById('passwordLabel');
-    
-    if (e.target.checked) {
-      // Al marcar Super Admin, forzar nivel administrador y mostrar contraseña
-      document.getElementById('usuarioNivel').value = 'administrador';
-      passwordContainer.style.display = 'block';
-      passwordLabel.innerHTML = '🔑 Contraseña de Super Administrador: *';
-      passwordLabel.style.color = '#d4af37';
-    } else {
-      // Si se desmarca y no hay otra razón para mostrar contraseña, ocultar
-      const nivel = document.getElementById('usuarioNivel').value;
-      if (nivel !== 'administrador') {
-        passwordContainer.style.display = 'none';
-        passwordLabel.innerHTML = 'Contraseña de Administrador: *';
-        passwordLabel.style.color = '#4a0404';
+  const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
+  if (checkboxSuperAdmin) {
+    checkboxSuperAdmin.addEventListener('change', (e) => {
+      const passwordContainer = document.getElementById('passwordContainer');
+      const passwordLabel = document.getElementById('passwordLabel');
+      
+      if (e.target.checked) {
+        // Al marcar Super Admin, forzar nivel administrador y mostrar contraseña
+        document.getElementById('usuarioNivel').value = 'administrador';
+        passwordContainer.style.display = 'block';
+        passwordLabel.innerHTML = '🔑 Contraseña de Super Administrador: *';
+        passwordLabel.style.color = '#d4af37';
+      } else {
+        // Si se desmarca y no hay otra razón para mostrar contraseña, ocultar
+        const nivel = document.getElementById('usuarioNivel').value;
+        if (nivel !== 'administrador') {
+          passwordContainer.style.display = 'none';
+          passwordLabel.innerHTML = 'Contraseña de Administrador: *';
+          passwordLabel.style.color = '#4a0404';
+        }
       }
-    }
-  });
-}
+    });
+  }
+  
+  // 🆕 NUEVO: Mostrar campo de contraseña cuando se selecciona Administrador en el dropdown
+  const selectNivel = document.getElementById('usuarioNivel');
+  if (selectNivel) {
+    selectNivel.addEventListener('change', (e) => {
+      const passwordContainer = document.getElementById('passwordContainer');
+      const passwordLabel = document.getElementById('passwordLabel');
+      const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
+      
+      if (e.target.value === 'administrador') {
+        // Mostrar campo de contraseña
+        passwordContainer.style.display = 'block';
+        passwordLabel.innerHTML = '🔐 Contraseña de Administrador: *';
+        passwordLabel.style.color = '#4a0404';
+      } else {
+        // Si no es admin y no es Super Admin, ocultar contraseña
+        if (!checkboxSuperAdmin || !checkboxSuperAdmin.checked) {
+          passwordContainer.style.display = 'none';
+        }
+      }
+    });
+  }
 }
 
 // ============================================
@@ -181,14 +205,15 @@ function renderizarTabla() {
   pagina.forEach(u => {
     const tr = document.createElement('tr');
     const fechaCreacion = u.creado_en ? new Date(u.creado_en).toLocaleString('es-VE') : 'N/A';
-   let badgeNivel;
-if (u.es_super_admin) {
-  badgeNivel = '<span class="badge badge-superadmin">⭐ Super Admin</span>';
-} else if (u.nivel_acceso === 'administrador') {
-  badgeNivel = '<span class="badge badge-admin">Admin</span>';
-} else {
-  badgeNivel = '<span class="badge badge-usuario">Usuario</span>';
-}
+    let badgeNivel;
+    if (u.es_super_admin) {
+      badgeNivel = '<span class="badge badge-superadmin">⭐ Super Admin</span>';
+    } else if (u.nivel_acceso === 'administrador') {
+      badgeNivel = '<span class="badge badge-admin">Admin</span>';
+    } else {
+      badgeNivel = '<span class="badge badge-usuario">Usuario</span>';
+    }
+    
     let fotoHTML;
     if (u.foto_url) {
       fotoHTML = `<img src="${u.foto_url}" class="foto-mini" alt="Foto" data-foto-url="${u.foto_url}" data-nombre="${u.primer_nombre} ${u.primer_apellido}" title="Click para ampliar">`;
@@ -467,18 +492,39 @@ async function guardarUsuario() {
   
   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
-  if (!cedula || !nombre || !apellido) {
-    alert('Por favor completa los campos obligatorios');
+  // VALIDACIÓN DE TODOS LOS CAMPOS OBLIGATORIOS (excepto foto)
+  if (!cedula) {
+    alert('⚠️ La cédula es obligatoria');
+    return;
+  }
+  
+  if (!nombre) {
+    alert('⚠️ El nombre es obligatorio');
+    return;
+  }
+  
+  if (!apellido) {
+    alert('⚠️ El apellido es obligatorio');
+    return;
+  }
+  
+  if (!jerarquia) {
+    alert('⚠️ Debes seleccionar una jerarquía');
+    return;
+  }
+  
+  if (!expediente) {
+    alert('⚠️ El número de expediente es obligatorio');
+    return;
+  }
+  
+  if (!causaSancion) {
+    alert('⚠️ La causa de sanción es obligatoria');
     return;
   }
   
   if (!/^\d{7,8}$/.test(cedula)) {
     alert('La cédula debe contener entre 7 y 8 dígitos numéricos');
-    return;
-  }
-  
-  if (!jerarquia) {
-    alert('Por favor selecciona una jerarquía');
     return;
   }
   
@@ -535,8 +581,8 @@ async function guardarUsuario() {
       primer_apellido: apellido,
       jerarquia: jerarquia,
       nivel_acceso: nivel,
-      numero_expediente: expediente || null,
-      causa_sancion: causaSancion || null,
+      numero_expediente: expediente,
+      causa_sancion: causaSancion,
       foto_url: fotoUrl,
       es_super_admin: esSuperAdmin && nivel === 'administrador'
     };
