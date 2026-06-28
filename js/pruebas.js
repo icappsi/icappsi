@@ -42,9 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 function configurarModales() {
-  // Cerrar modales al hacer clic fuera (EXCEPTO el modal de Crear/Editar Prueba)
   document.querySelectorAll('.modal-overlay').forEach(modal => {
-    if (modal.id === 'modalPrueba') return; // NO cerrar al hacer clic fuera
+    if (modal.id === 'modalPrueba') return;
     
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.style.display = 'none';
@@ -169,7 +168,7 @@ function filtrarUsuarios(filtro) {
     `;
     lista.appendChild(div);
     
-      div.querySelector('.checkbox-usuario').addEventListener('change', async (e) => {
+    div.querySelector('.checkbox-usuario').addEventListener('change', async (e) => {
       if (e.target.checked) {
         await supabaseClient.from('pruebas_usuarios').insert({ prueba_id: pruebaIdActual, usuario_id: u.id });
         u.asignado = true;
@@ -208,6 +207,7 @@ function filtrarUsuarios(filtro) {
         }
       }
     });
+  });
 }
 
 function filtrarResultados(filtro) {
@@ -255,7 +255,7 @@ function filtrarResultados(filtro) {
     lista.appendChild(card);
     
     card.querySelector('.btn-ver-detalle').addEventListener('click', () => verDetalleIntento(i.id, pruebaIdActual));
-      card.querySelector('.btn-rehabilitar').addEventListener('click', async () => {
+    card.querySelector('.btn-rehabilitar').addEventListener('click', async () => {
       if (confirm('¿Rehabilitar esta prueba?')) {
         await supabaseClient.from('intentos_pruebas').delete().eq('id', i.id);
         
@@ -280,6 +280,7 @@ function filtrarResultados(filtro) {
         verResultados(pruebaIdActual);
       }
     });
+  });
 }
 
 function seleccionarTodosUsuarios() {
@@ -432,7 +433,7 @@ async function guardarPrueba() {
     }));
   }
   
-   if (error) {
+  if (error) {
     alert('Error: ' + error.message);
   } else {
     // 🆕 REGISTRAR LOG DE CREAR/EDITAR PRUEBA
@@ -554,6 +555,7 @@ async function cargarPreguntas(pruebaId) {
         cargarPreguntas(pruebaId);
       }
     });
+  });
   
   renderizarPaginacion(totalPaginas, pruebaId);
   document.getElementById('btnAgregarPregunta').onclick = () => abrirModalPregunta(null, pruebaId);
@@ -749,7 +751,7 @@ async function guardarPregunta() {
     ({ error } = await supabaseClient.from('preguntas').insert(datosPregunta));
   }
   
-    if (error) {
+  if (error) {
     alert('Error: ' + error.message);
   } else {
     // 🆕 REGISTRAR LOG DE CREAR/EDITAR PREGUNTA
@@ -1189,6 +1191,9 @@ async function enviarPrueba() {
   
   const pct = totalPuntos > 0 ? (puntosObtenidos / totalPuntos) * 100 : 0;
   
+  // 🆕 DECLARAR resultado ANTES de usarlo
+  const resultado = pct >= 60 ? 'APROBADO' : 'REPROBADO';
+  
   await supabaseClient.from('intentos_pruebas')
     .update({
       fecha_fin: new Date().toISOString(),
@@ -1221,7 +1226,6 @@ async function enviarPrueba() {
   
   document.getElementById('modalPruebaUsuario').style.display = 'none';
   
-  const resultado = pct >= 60 ? 'APROBADO' : 'REPROBADO';
   const icono = pct >= 60 ? '🎉' : '😔';
   
   alert(`${icono} ${resultado}\n\nPuntuación: ${pct.toFixed(1)}%\nRespuestas correctas: ${correctas} de ${preguntasActuales.length}`);
