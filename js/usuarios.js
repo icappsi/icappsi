@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 function configurarEventos() {
+   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   document.getElementById('buscarUsuario').addEventListener('input', (e) => {
     filtrarUsuarios(e.target.value);
   });
@@ -158,7 +159,16 @@ function configurarEventos() {
     });
   }
 }
-
+// Botón para ver usuarios eliminados (solo Super Admin)
+const btnVerEliminados = document.getElementById('btnVerEliminados');
+if (btnVerEliminados) {
+  if (usuarioLogueado.es_super_admin) {
+    btnVerEliminados.style.display = 'inline-block';
+    btnVerEliminados.addEventListener('click', () => {
+      window.open('usuarios_eliminados.html', '_blank');
+    });
+  }
+}
 // ============================================
 // 3. CARGAR USUARIOS
 // ============================================
