@@ -10,7 +10,7 @@ async function cerrarSesion() {
   const usuario = JSON.parse(usuarioStr);
   
   try {
-    // PASO 2: Registrar log de cierre de sesión (esperar a que termine)
+   
     if (typeof registrarLog === 'function') {
       console.log('📝 Registrando log de cierre de sesión...');
       await registrarLog({
