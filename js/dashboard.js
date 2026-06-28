@@ -106,17 +106,4 @@ function inicializarDashboard(user) {
     }
   }
 
-  // 🆕 9. NUEVO: Registrar log de inicio de sesión
-  if (typeof registrarLog === 'function') {
-    registrarLog({
-      accion: 'Inicio de sesión',
-      modulo: 'Autenticación',
-      descripcion: `El usuario ${user.nombre} ${user.apellido} inició sesión en el sistema`,
-      detalles: {
-        cedula: user.cedula,
-        nivel: user.nivel_acceso,
-        es_super_admin: user.es_super_admin || false
-      }
-    });
-  }
-}
+
