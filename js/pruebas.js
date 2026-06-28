@@ -169,16 +169,45 @@ function filtrarUsuarios(filtro) {
     `;
     lista.appendChild(div);
     
-    div.querySelector('.checkbox-usuario').addEventListener('change', async (e) => {
+      div.querySelector('.checkbox-usuario').addEventListener('change', async (e) => {
       if (e.target.checked) {
         await supabaseClient.from('pruebas_usuarios').insert({ prueba_id: pruebaIdActual, usuario_id: u.id });
         u.asignado = true;
+        
+        // 🆕 REGISTRAR LOG DE ASIGNAR USUARIO A PRUEBA
+        if (typeof registrarLog === 'function') {
+          const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaIdActual).single();
+          await registrarLog({
+            accion: 'Asignar usuario a prueba',
+            modulo: 'Pruebas',
+            descripcion: `Usuario ${u.primer_nombre} ${u.primer_apellido} habilitado para prueba: ${pruebaData?.titulo || 'ID ' + pruebaIdActual}`,
+            detalles: { 
+              usuario_id: u.id,
+              usuario_cedula: u.cedula,
+              prueba_id: pruebaIdActual
+            }
+          });
+        }
       } else {
         await supabaseClient.from('pruebas_usuarios').delete().eq('prueba_id', pruebaIdActual).eq('usuario_id', u.id);
         u.asignado = false;
+        
+        // 🆕 REGISTRAR LOG DE DESASIGNAR USUARIO DE PRUEBA
+        if (typeof registrarLog === 'function') {
+          const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaIdActual).single();
+          await registrarLog({
+            accion: 'Desasignar usuario de prueba',
+            modulo: 'Pruebas',
+            descripcion: `Usuario ${u.primer_nombre} ${u.primer_apellido} deshabilitado de prueba: ${pruebaData?.titulo || 'ID ' + pruebaIdActual}`,
+            detalles: { 
+              usuario_id: u.id,
+              usuario_cedula: u.cedula,
+              prueba_id: pruebaIdActual
+            }
+          });
+        }
       }
     });
-  });
 }
 
 function filtrarResultados(filtro) {
@@ -226,14 +255,31 @@ function filtrarResultados(filtro) {
     lista.appendChild(card);
     
     card.querySelector('.btn-ver-detalle').addEventListener('click', () => verDetalleIntento(i.id, pruebaIdActual));
-    card.querySelector('.btn-rehabilitar').addEventListener('click', async () => {
+      card.querySelector('.btn-rehabilitar').addEventListener('click', async () => {
       if (confirm('¿Rehabilitar esta prueba?')) {
         await supabaseClient.from('intentos_pruebas').delete().eq('id', i.id);
+        
+        // 🆕 REGISTRAR LOG DE REHABILITAR INTENTO
+        if (typeof registrarLog === 'function') {
+          const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaIdActual).single();
+          await registrarLog({
+            accion: 'Rehabilitar intento de prueba',
+            modulo: 'Pruebas',
+            descripcion: `Intento rehabilitado para ${i.usuarios.primer_nombre} ${i.usuarios.primer_apellido} en prueba: ${pruebaData?.titulo || 'ID ' + pruebaIdActual}`,
+            detalles: { 
+              intento_id: i.id,
+              usuario_id: i.usuario_id,
+              usuario_cedula: i.usuarios.cedula,
+              prueba_id: pruebaIdActual,
+              puntuacion_anterior: i.puntuacion
+            }
+          });
+        }
+        
         alert('Prueba rehabilitada');
         verResultados(pruebaIdActual);
       }
     });
-  });
 }
 
 function seleccionarTodosUsuarios() {
@@ -386,9 +432,26 @@ async function guardarPrueba() {
     }));
   }
   
-  if (error) {
+   if (error) {
     alert('Error: ' + error.message);
   } else {
+    // 🆕 REGISTRAR LOG DE CREAR/EDITAR PRUEBA
+    if (typeof registrarLog === 'function') {
+      await registrarLog({
+        accion: editId ? 'Editar prueba' : 'Crear prueba',
+        modulo: 'Pruebas',
+        descripcion: `${editId ? 'Prueba modificada' : 'Prueba creada'}: ${titulo}`,
+        detalles: { 
+          titulo: titulo,
+          descripcion: descripcion,
+          tiempo_limite: tiempoLimite,
+          activa: activa,
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin
+        }
+      });
+    }
+    
     modal.style.display = 'none';
     alert(editId ? 'Prueba actualizada' : 'Prueba creada correctamente');
     cargarPruebasAdmin();
@@ -406,6 +469,19 @@ async function eliminarPrueba(id, titulo) {
   if (error) {
     alert('Error: ' + error.message);
   } else {
+    // 🆕 REGISTRAR LOG DE ELIMINAR PRUEBA
+    if (typeof registrarLog === 'function') {
+      await registrarLog({
+        accion: 'Eliminar prueba',
+        modulo: 'Pruebas',
+        descripcion: `Prueba eliminada: ${titulo}`,
+        detalles: { 
+          id: id,
+          titulo: titulo
+        }
+      });
+    }
+    
     alert('Prueba eliminada correctamente');
     cargarPruebasAdmin();
   }
@@ -459,10 +535,25 @@ async function cargarPreguntas(pruebaId) {
     card.querySelector('.btn-eliminar-pregunta').addEventListener('click', async () => {
       if (confirm('¿Eliminar esta pregunta?')) {
         await supabaseClient.from('preguntas').delete().eq('id', p.id);
+        
+        // 🆕 REGISTRAR LOG DE ELIMINAR PREGUNTA
+        if (typeof registrarLog === 'function') {
+          const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaId).single();
+          await registrarLog({
+            accion: 'Eliminar pregunta',
+            modulo: 'Pruebas',
+            descripcion: `Pregunta eliminada de: ${pruebaData?.titulo || 'Prueba ID ' + pruebaId}`,
+            detalles: { 
+              pregunta_id: p.id,
+              prueba_id: pruebaId,
+              pregunta_texto: p.pregunta.substring(0, 100)
+            }
+          });
+        }
+        
         cargarPreguntas(pruebaId);
       }
     });
-  });
   
   renderizarPaginacion(totalPaginas, pruebaId);
   document.getElementById('btnAgregarPregunta').onclick = () => abrirModalPregunta(null, pruebaId);
@@ -658,9 +749,25 @@ async function guardarPregunta() {
     ({ error } = await supabaseClient.from('preguntas').insert(datosPregunta));
   }
   
-  if (error) {
+    if (error) {
     alert('Error: ' + error.message);
   } else {
+    // 🆕 REGISTRAR LOG DE CREAR/EDITAR PREGUNTA
+    if (typeof registrarLog === 'function') {
+      const { data: pruebaData } = await supabaseClient.from('pruebas').select('titulo').eq('id', pruebaId).single();
+      await registrarLog({
+        accion: editId ? 'Editar pregunta' : 'Crear pregunta',
+        modulo: 'Pruebas',
+        descripcion: `${editId ? 'Pregunta modificada' : 'Pregunta creada'} en prueba: ${pruebaData?.titulo || 'ID ' + pruebaId}`,
+        detalles: { 
+          prueba_id: pruebaId,
+          tipo: tipo,
+          puntos: puntos,
+          pregunta: preguntaTexto.substring(0, 100)
+        }
+      });
+    }
+    
     modal.style.display = 'none';
     cargarPreguntas(pruebaId);
   }
@@ -949,6 +1056,23 @@ async function iniciarPrueba(pruebaId) {
     .insert({ prueba_id: pruebaId, usuario_id: usuario.id, estado: 'en_progreso', total_preguntas: preguntas.length })
     .select().single();
   
+  // 🆕 REGISTRAR LOG DE INICIAR PRUEBA
+  if (typeof registrarLog === 'function') {
+    await registrarLog({
+      accion: 'Iniciar prueba',
+      modulo: 'Pruebas',
+      descripcion: `Usuario ${usuario.nombre} ${usuario.apellido} inició prueba: ${prueba.titulo}`,
+      detalles: { 
+        prueba_id: pruebaId,
+        prueba_titulo: prueba.titulo,
+        usuario_id: usuario.id,
+        usuario_cedula: usuario.cedula,
+        total_preguntas: preguntas.length,
+        tiempo_limite: prueba.tiempo_limite
+      }
+    });
+  }
+  
   document.getElementById('tituloPruebaUsuario').textContent = prueba.titulo;
   document.getElementById('modalPruebaUsuario').style.display = 'flex';
   
@@ -1074,6 +1198,26 @@ async function enviarPrueba() {
       respuestas: respuestasUsuario
     })
     .eq('prueba_id', pruebaActual.id);
+  
+  // 🆕 REGISTRAR LOG DE COMPLETAR PRUEBA
+  if (typeof registrarLog === 'function') {
+    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+    await registrarLog({
+      accion: 'Completar prueba',
+      modulo: 'Pruebas',
+      descripcion: `Usuario ${usuario.nombre} ${usuario.apellido} completó prueba: ${pruebaActual.titulo} - ${resultado}`,
+      detalles: { 
+        prueba_id: pruebaActual.id,
+        prueba_titulo: pruebaActual.titulo,
+        usuario_id: usuario.id,
+        usuario_cedula: usuario.cedula,
+        puntuacion: pct,
+        respuestas_correctas: correctas,
+        total_preguntas: preguntasActuales.length,
+        resultado: resultado
+      }
+    });
+  }
   
   document.getElementById('modalPruebaUsuario').style.display = 'none';
   
