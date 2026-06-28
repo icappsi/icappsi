@@ -1,8 +1,5 @@
-// ============================================
-// AUTENTICACIÓN Y SESIONES
-// ============================================
-
 async function cerrarSesion() {
+  // PASO 1: Obtener datos del usuario ANTES de limpiar sessionStorage
   const usuarioStr = sessionStorage.getItem('usuario');
   
   if (!usuarioStr) {
@@ -13,10 +10,10 @@ async function cerrarSesion() {
   const usuario = JSON.parse(usuarioStr);
   
   try {
-    // 🆕 REGISTRAR LOG DE CIERRE DE SESIÓN CON BEACON (antes de limpiar sessionStorage)
-    if (typeof registrarLogBeacon === 'function') {
-      registrarLogBeacon({
-        usuario: usuario,
+    // PASO 2: Registrar log de cierre de sesión (esperar a que termine)
+    if (typeof registrarLog === 'function') {
+      console.log('📝 Registrando log de cierre de sesión...');
+      await registrarLog({
         accion: 'Cierre de sesión',
         modulo: 'Autenticación',
         descripcion: `El usuario ${usuario.nombre} ${usuario.apellido} cerró sesión`,
@@ -26,9 +23,12 @@ async function cerrarSesion() {
           es_super_admin: usuario.es_super_admin || false
         }
       });
+      console.log('✅ Log registrado correctamente');
+    } else {
+      console.warn('⚠️ La función registrarLog no está disponible');
     }
     
-    // Eliminar la sesión activa de la base de datos
+    // PASO 3: Eliminar sesión activa de la base de datos
     const { error } = await supabaseClient
       .from('sesiones_activas')
       .delete()
@@ -42,40 +42,9 @@ async function cerrarSesion() {
     console.error('Error:', err);
   }
   
-  // Limpiar sessionStorage
+  // PASO 4: Limpiar sessionStorage DESPUÉS de registrar el log
   sessionStorage.removeItem('usuario');
   
-  // Redirigir al login
+  // PASO 5: Redirigir al login
   window.location.href = 'index.html';
-}
-
-// Función para verificar si hay sesión activa
-function verificarSesion() {
-  const usuarioStr = sessionStorage.getItem('usuario');
-  
-  if (!usuarioStr) {
-    sessionStorage.removeItem('usuario');
-    window.location.href = 'index.html';
-    return false;
-  }
-  
-  return true;
-}
-
-// Función para actualizar la última actividad (heartbeat)
-async function actualizarActividad() {
-  const usuarioStr = sessionStorage.getItem('usuario');
-  
-  if (!usuarioStr) return;
-  
-  const usuario = JSON.parse(usuarioStr);
-  
-  try {
-    await supabaseClient
-      .from('sesiones_activas')
-      .update({ ultima_actividad: new Date().toISOString() })
-      .eq('cedula', usuario.cedula);
-  } catch (err) {
-    console.error('Error actualizando actividad:', err);
-  }
 }
