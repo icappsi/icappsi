@@ -2,6 +2,9 @@
 // DASHBOARD - VERSIÓN COMPLETA Y CORREGIDA
 // ============================================
 
+// Variable para controlar si ya se registró el cierre de sesión
+let sesionCerrada = false;
+
 // --- VERIFICACIÓN DE SESIÓN ---
 const usuarioStr = sessionStorage.getItem('usuario');
 if (!usuarioStr) {
@@ -9,6 +12,55 @@ if (!usuarioStr) {
 } else {
   const usuario = JSON.parse(usuarioStr);
   inicializarDashboard(usuario);
+  
+  // 🆕 NUEVO: Registrar cierre de sesión al cerrar pestaña/navegador
+  window.addEventListener('beforeunload', () => {
+    if (!sesionCerrada && sessionStorage.getItem('usuario')) {
+      // Marcar como cerrada para evitar duplicados
+      sesionCerrada = true;
+      
+      // Registrar log de cierre de sesión de forma síncrona
+      if (typeof registrarLogSincrono === 'function') {
+        registrarLogSincrono({
+          accion: 'Cierre de sesión',
+          modulo: 'Autenticación',
+          descripcion: `El usuario ${usuario.nombre} ${usuario.apellido} cerró la sesión (cierre de pestaña/navegador)`,
+          detalles: {
+            cedula: usuario.cedula,
+            nivel: usuario.nivel_acceso,
+            tipo_cierre: 'Cierre de pestaña/navegador',
+            es_super_admin: usuario.es_super_admin || false
+          }
+        });
+      }
+      
+      // Eliminar sesión activa
+      try {
+        const xhr = new XMLHttpRequest();
+        const supabaseUrl = supabaseClient.supabaseUrl;
+        const supabaseKey = supabaseClient.supabaseKey;
+        const url = `${supabaseUrl}/rest/v1/sesiones_activas?cedula=eq.${usuario.cedula}`;
+        
+        xhr.open('DELETE', url, false); // síncrono
+        xhr.setRequestHeader('apikey', supabaseKey);
+        xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`);
+        xhr.send();
+      } catch (e) {
+        console.error('Error al eliminar sesión activa:', e);
+      }
+      
+      // Limpiar sessionStorage
+      sessionStorage.removeItem('usuario');
+    }
+  });
+  
+  // También detectar cuando la pestaña se oculta (minimizar, cambiar de pestaña)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && !sesionCerrada) {
+      // Opcional: podrías registrar aquí si quieres detectar cuando el usuario cambia de pestaña
+      // Por ahora no hacemos nada, solo esperamos el beforeunload
+    }
+  });
 }
 
 // --- INICIALIZACIÓN DEL DASHBOARD ---
@@ -21,11 +73,9 @@ function inicializarDashboard(user) {
   // 2. Formatear número de expediente con formato ID-ZU-CPNB-XXXXX-YY
   let expedienteTexto = '';
   if (user.numero_expediente) {
-    // Si ya tiene el formato completo, usarlo tal cual
     if (user.numero_expediente.includes('ID-ZU-CPNB')) {
       expedienteTexto = user.numero_expediente;
     } else {
-      // Si solo tiene el número, formatearlo
       const numeros = user.numero_expediente.replace(/\D/g, '');
       const numeroFormateado = numeros.padStart(5, '0');
       const añoActual = new Date().getFullYear().toString().slice(-2);
@@ -88,13 +138,32 @@ function inicializarDashboard(user) {
   });
   
   // 7. Botón de Cerrar Sesión
-  document.getElementById('btnLogout').addEventListener('click', () => {
+  document.getElementById('btnLogout').addEventListener('click', async () => {
     if (confirm('¿Está seguro que desea cerrar sesión?')) {
+      // Marcar como cerrada para que beforeunload no lo haga de nuevo
+      sesionCerrada = true;
+      
+      // Registrar log de cierre de sesión (botón)
+      if (typeof registrarLog === 'function') {
+        await registrarLog({
+          accion: 'Cierre de sesión',
+          modulo: 'Autenticación',
+          descripcion: `El usuario ${user.nombre} ${user.apellido} cerró sesión manualmente`,
+          detalles: {
+            cedula: user.cedula,
+            nivel: user.nivel_acceso,
+            tipo_cierre: 'Botón Cerrar Sesión',
+            es_super_admin: user.es_super_admin || false
+          }
+        });
+      }
+      
+      // Llamar a cerrarSesion de auth.js
       cerrarSesion();
     }
   });
   
-  // 🆕 8. NUEVO: Mostrar botón de Logs solo para Super Admin
+  // 8. Mostrar botón de Logs solo para Super Admin
   if (user.es_super_admin) {
     const btnLogs = document.getElementById('btnVerLogs');
     if (btnLogs) {
