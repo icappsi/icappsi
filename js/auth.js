@@ -9,25 +9,26 @@ async function cerrarSesion() {
   const usuario = JSON.parse(usuarioStr);
   
   try {
-   
-    if (typeof registrarLog === 'function') {
-      console.log('📝 Registrando log de cierre de sesión...');
-      await registrarLog({
-        accion: 'Cierre de sesión',
-        modulo: 'Autenticación',
-        descripcion: `El usuario ${usuario.nombre} ${usuario.apellido} cerró sesión`,
-        detalles: { 
+    // 🆕 USAR registrarLogCierre (con sendBeacon) en lugar de registrarLog
+    if (typeof registrarLogCierre === 'function') {
+      console.log('📝 Enviando log de cierre de sesión...');
+      registrarLogCierre(
+        usuario, 
+        'Logout', 
+        'Autenticación', 
+        `El usuario ${usuario.nombre} ${usuario.apellido} cerró sesión`,
+        { 
           cedula: usuario.cedula,
           nivel: usuario.nivel_acceso,
           es_super_admin: usuario.es_super_admin || false
         }
-      });
-      console.log('✅ Log registrado correctamente');
+      );
+      console.log('✅ Log de cierre enviado con sendBeacon');
     } else {
-      console.warn('⚠️ La función registrarLog no está disponible');
+      console.warn('⚠️ La función registrarLogCierre no está disponible');
     }
     
-    // PASO 3: Eliminar sesión activa de la base de datos
+    // Eliminar sesión activa de la base de datos
     const { error } = await supabaseClient
       .from('sesiones_activas')
       .delete()
@@ -40,8 +41,7 @@ async function cerrarSesion() {
   } catch (err) {
     console.error('Error:', err);
   }
-  sessionStorage.removeItem('usuario');
   
-  // PASO 5: Redirigir al login
+  sessionStorage.removeItem('usuario');
   window.location.href = 'index.html';
 }
