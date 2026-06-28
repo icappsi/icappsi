@@ -364,30 +364,54 @@ text-transform: uppercase;
 
   <!-- Panel de control -->
   <div class="card">
-    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-      <input type="text" id="buscarUsuario" class="form-control" placeholder="🔍 Buscar por cédula, nombre o apellido..." style="flex: 1; min-width: 250px;">
-      <button id="btnNuevoUsuario" class="btn btn-primary">➕ Nuevo Usuario</button>
-      <button id="btnRefrescar" class="btn btn-info">🔄 Refrescar</button>
-    </div>
+   <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+<input type="text" id="buscarUsuario" class="form-control" placeholder="🔍 Buscar por cédula, nombre o apellido..." style="flex: 1; min-width: 250px;">
+<button id="btnNuevoUsuario" class="btn btn-primary">➕ Nuevo Usuario</button>
+<button id="btnRefrescar" class="btn btn-info">🔄 Refrescar</button>
+</div>
+
+<!-- NUEVOS BOTONES DE ELIMINACIÓN MASIVA -->
+<div id="accionesMasivas" style="display: none; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+<div>
+<strong>⚠️ <span id="contadorSeleccionados">0</span> usuarios seleccionados</strong>
+<p style="margin: 5px 0 0; font-size: 13px; color: #856404;">
+Solo se eliminarán los usuarios normales. Los administradores serán ignorados.
+</p>
+</div>
+<div style="display: flex; gap: 10px;">
+<button id="btnEliminarSeleccionados" class="btn btn-danger">🗑️ Eliminar Seleccionados</button>
+<button id="btnCancelarSeleccion" class="btn btn-secondary">❌ Cancelar</button>
+</div>
+</div>
+</div>
+
+<!-- Botones de acciones masivas -->
+<div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+<button id="btnSeleccionarTodos" class="btn btn-warning">✅ Seleccionar Todos</button>
+<button id="btnDeseleccionarTodos" class="btn btn-secondary">❌ Deseleccionar</button>
+<button id="btnEliminarTodos" class="btn btn-danger" style="background: #cc0000;">⚠️ Eliminar Todos los Usuarios Normales</button>
+</div>
 
     <div id="contadorUsuarios" style="text-align: center; color: #666; margin-bottom: 15px; font-size: 14px;"></div>
 
     <!-- Tabla -->
     <div class="tabla-container">
       <table class="tabla-usuarios">
-        <thead>
-          <tr>
-            <th>Foto</th>
-            <th>Cédula</th>
-            <th>Nombre Completo</th>
-            <th>Jerarquía</th>
-            <th>Nivel</th>
-            <th>N° Expediente</th>
-            <th>Causa Sanción</th>
-            <th>Fecha Creación</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
+   <thead>
+<tr>
+<th style="width: 40px;">☑️</th>
+<th>Foto</th>
+<th>Cédula</th>
+<th>Nombre Completo</th>
+<th>Jerarquía</th>
+<th>Nivel</th>
+<th>N° Expediente</th>
+<th>Causa Sanción</th>
+<th>Fecha Creación</th>
+<th>Acciones</th>
+</tr>
+</thead>
         <tbody id="tablaUsuariosBody">
           <tr>
             <td colspan="9" style="text-align: center; padding: 30px; color: #888;">Cargando usuarios...</td>
