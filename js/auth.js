@@ -1,5 +1,4 @@
 async function cerrarSesion() {
-  // PASO 1: Obtener datos del usuario ANTES de limpiar sessionStorage
   const usuarioStr = sessionStorage.getItem('usuario');
   
   if (!usuarioStr) {
@@ -41,8 +40,6 @@ async function cerrarSesion() {
   } catch (err) {
     console.error('Error:', err);
   }
-  
-  // PASO 4: Limpiar sessionStorage DESPUÉS de registrar el log
   sessionStorage.removeItem('usuario');
   
   // PASO 5: Redirigir al login
