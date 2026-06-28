@@ -144,7 +144,7 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
         creado_por: usuario.id
       });
     
-       if (dbError) throw dbError;
+    if (dbError) throw dbError;
     
     // 🆕 REGISTRAR LOG DE CREACIÓN DE MATERIAL
     if (typeof registrarLog === 'function') {
@@ -159,9 +159,6 @@ document.getElementById('btnSubirMaterial').addEventListener('click', async () =
         }
       });
     }
-    
-    // Confirmación final exitosa
-    btnSubir.textContent = '✅ ¡Material publicado exitosamente!';
     
     // Confirmación final exitosa
     btnSubir.textContent = '✅ ¡Material publicado exitosamente!';
@@ -204,7 +201,7 @@ async function cargarMateriales() {
       .select('*')
       .order('fecha_creacion', { ascending: false });
     
-       if (error) throw error;
+      if (error) throw error;
     
     // 🆕 REGISTRAR LOG DE CONFIRMACIÓN DE LECTURA
     if (typeof registrarLog === 'function') {
@@ -904,7 +901,7 @@ async function eliminarMaterial(id, titulo) {
       .delete()
       .eq('id', id);
     
-        if (deleteError) throw deleteError;
+    if (deleteError) throw deleteError;
     
     // 🆕 REGISTRAR LOG DE ELIMINACIÓN DE MATERIAL
     if (typeof registrarLog === 'function') {
@@ -918,8 +915,6 @@ async function eliminarMaterial(id, titulo) {
         }
       });
     }
-    
-    await showAlert('¡Eliminado!', 'El material se ha eliminado correctamente', 'success');
     
     await showAlert('¡Eliminado!', 'El material se ha eliminado correctamente', 'success');
     cargarMateriales();
@@ -1091,7 +1086,7 @@ async function guardarEdicion(id, materialOriginal) {
       .update(updateData)
       .eq('id', id);
     
-        if (updateError) throw updateError;
+         if (updateError) throw updateError;
     
     // 🆕 REGISTRAR LOG DE EDICIÓN DE MATERIAL
     if (typeof registrarLog === 'function') {
@@ -1107,8 +1102,6 @@ async function guardarEdicion(id, materialOriginal) {
         }
       });
     }
-    
-    await showAlert('¡Actualizado!', 'El material se ha actualizado correctamente', 'success');
     
     await showAlert('¡Actualizado!', 'El material se ha actualizado correctamente', 'success');
     cargarMateriales();
