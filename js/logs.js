@@ -84,3 +84,41 @@ function registrarLogBeacon({ usuario, accion, modulo, descripcion, detalles = n
     return false;
   }
 }
+/**
+ * Registra un log de forma confiable usando sendBeacon.
+ * Garantiza que el log se envíe aunque la página se cierre o redireccione.
+ */
+function registrarLogCierre(usuario, accion, modulo, descripcion, detalles = null) {
+  try {
+    if (!usuario || !supabaseClient) return;
+
+    const logData = {
+      usuario_id: usuario.id,
+      usuario_nombre: `${usuario.nombre} ${usuario.apellido}`,
+      usuario_cedula: usuario.cedula,
+      accion: accion,
+      modulo: modulo,
+      descripcion: descripcion,
+      detalles: detalles,
+      ip_address: null,
+      user_agent: navigator.userAgent
+    };
+
+    const supabaseUrl = supabaseClient.supabaseUrl;
+    const supabaseKey = supabaseClient.supabaseKey;
+    const url = `${supabaseUrl}/rest/v1/logs_sistema`;
+
+    const payload = JSON.stringify(logData);
+    const blob = new Blob([payload], { type: 'application/json' });
+
+    const success = navigator.sendBeacon(url, blob);
+    
+    if (success) {
+      console.log('✅ Log de cierre enviado con sendBeacon');
+    } else {
+      console.warn('⚠️ sendBeacon no pudo encolar el log');
+    }
+  } catch (error) {
+    console.error('❌ Error en registrarLogCierre:', error);
+  }
+}
