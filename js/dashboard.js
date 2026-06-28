@@ -95,7 +95,6 @@ function inicializarDashboard(user) {
   });
   
   // 🆕 8. NUEVO: Mostrar botón de Logs solo para Super Admin
-  // ESTOS BLOQUES ESTABAN FUERA DE LA FUNCIÓN, POR ESO FALLABA
   if (user.es_super_admin) {
     const btnLogs = document.getElementById('btnVerLogs');
     if (btnLogs) {
@@ -105,5 +104,4 @@ function inicializarDashboard(user) {
       });
     }
   }
-
-
+}
