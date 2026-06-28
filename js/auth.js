@@ -1,4 +1,7 @@
-@@ -1,79 +1,25 @@
+// ============================================
+// AUTENTICACIÓN Y SESIONES
+// ============================================
+
 // Función para cerrar sesión
 async function cerrarSesion() {
   const usuarioStr = sessionStorage.getItem('usuario');
@@ -12,6 +15,21 @@ async function cerrarSesion() {
   const usuario = JSON.parse(usuarioStr);
   
   try {
+    // 🆕 NUEVO: Registrar log de cierre de sesión ANTES de limpiar sessionStorage
+    if (typeof registrarLog === 'function') {
+      await registrarLog({
+        accion: 'Cierre de sesión',
+        modulo: 'Autenticación',
+        descripcion: `El usuario ${usuario.nombre} ${usuario.apellido} cerró sesión manualmente`,
+        detalles: { 
+          cedula: usuario.cedula,
+          tipo_cierre: 'Botón Cerrar Sesión',
+          nivel: usuario.nivel_acceso,
+          es_super_admin: usuario.es_super_admin || false
+        }
+      });
+    }
+    
     // Eliminar la sesión activa de la base de datos
     const { error } = await supabaseClient
       .from('sesiones_activas')
@@ -20,36 +38,11 @@ async function cerrarSesion() {
     
     if (error) {
       console.error('Error cerrando sesión:', error);
-    const usuarioStr = sessionStorage.getItem('usuario');
-    if (usuarioStr) {
-      const usuario = JSON.parse(usuarioStr);
-      
-      // Eliminar sesión activa de la base de datos
-      await supabaseClient
-        .from('sesiones_activas')
-        .delete()
-        .eq('cedula', usuario.cedula);
     }
+    
   } catch (err) {
     console.error('Error:', err);
   }
-  // Registrar log de cierre de sesión
-if (typeof registrarLog === 'function') {
-  const usuarioStr = sessionStorage.getItem('usuario');
-  if (usuarioStr) {
-    const usuario = JSON.parse(usuarioStr);
-    registrarLog({
-      accion: 'Cierre de sesión',
-      modulo: 'Autenticación',
-      descripcion: `El usuario ${usuario.nombre} ${usuario.apellido} cerró sesión`,
-      detalles: { cedula: usuario.cedula }
-    }).then(() => {
-      sessionStorage.removeItem('usuario');
-      window.location.href = 'index.html';
-    });
-    return;
-  }
-}
   
   // Limpiar sessionStorage
   sessionStorage.removeItem('usuario');
@@ -63,16 +56,10 @@ function verificarSesion() {
   const usuarioStr = sessionStorage.getItem('usuario');
   
   if (!usuarioStr) {
-    
     // Limpiar sessionStorage
     sessionStorage.removeItem('usuario');
     
     // Redirigir al login
-    window.location.href = 'index.html';
-  } catch (error) {
-    console.error('Error al cerrar sesión:', error);
-    // Aún así, limpiar y redirigir
-    sessionStorage.removeItem('usuario');
     window.location.href = 'index.html';
     return false;
   }
