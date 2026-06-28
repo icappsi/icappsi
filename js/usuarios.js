@@ -24,9 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const usuario = JSON.parse(usuarioStr);
   
-  // Si no es administrador, simplemente no hacer nada (sin alerta)
   if (usuario.nivel_acceso !== 'administrador') {
-    document.body.innerHTML = ''; // Limpiar contenido
+    document.body.innerHTML = '';
     return;
   }
   
@@ -65,7 +64,6 @@ function configurarEventos() {
     document.getElementById('modalEliminar').style.display = 'none';
   });
   
-  // 🆕 NUEVOS: Botones de eliminación masiva
   const btnSeleccionarTodos = document.getElementById('btnSeleccionarTodos');
   if (btnSeleccionarTodos) {
     btnSeleccionarTodos.addEventListener('click', seleccionarTodosUsuarios);
@@ -91,7 +89,6 @@ function configurarEventos() {
     btnEliminarTodos.addEventListener('click', eliminarTodosUsuarios);
   }
   
-  // Validación de cédula: solo 7-8 dígitos numéricos
   const inputCedula = document.getElementById('usuarioCedula');
   inputCedula.addEventListener('input', (e) => {
     e.target.value = e.target.value.replace(/\D/g, '');
@@ -100,7 +97,6 @@ function configurarEventos() {
     }
   });
   
-  // Preview de foto
   document.getElementById('usuarioFoto').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -113,7 +109,6 @@ function configurarEventos() {
     }
   });
   
-  // Mostrar campo de contraseña al marcar Super Admin
   const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
   if (checkboxSuperAdmin) {
     checkboxSuperAdmin.addEventListener('change', (e) => {
@@ -121,13 +116,11 @@ function configurarEventos() {
       const passwordLabel = document.getElementById('passwordLabel');
       
       if (e.target.checked) {
-        // Al marcar Super Admin, forzar nivel administrador y mostrar contraseña
         document.getElementById('usuarioNivel').value = 'administrador';
         passwordContainer.style.display = 'block';
         passwordLabel.innerHTML = '🔑 Contraseña de Super Administrador: *';
         passwordLabel.style.color = '#d4af37';
       } else {
-        // Si se desmarca y no hay otra razón para mostrar contraseña, ocultar
         const nivel = document.getElementById('usuarioNivel').value;
         if (nivel !== 'administrador') {
           passwordContainer.style.display = 'none';
@@ -138,7 +131,6 @@ function configurarEventos() {
     });
   }
   
-  // 🆕 NUEVO: Mostrar campo de contraseña cuando se selecciona Administrador en el dropdown
   const selectNivel = document.getElementById('usuarioNivel');
   if (selectNivel) {
     selectNivel.addEventListener('change', (e) => {
@@ -147,12 +139,10 @@ function configurarEventos() {
       const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
       
       if (e.target.value === 'administrador') {
-        // Mostrar campo de contraseña
         passwordContainer.style.display = 'block';
         passwordLabel.innerHTML = '🔐 Contraseña de Administrador: *';
         passwordLabel.style.color = '#4a0404';
       } else {
-        // Si no es admin y no es Super Admin, ocultar contraseña
         if (!checkboxSuperAdmin || !checkboxSuperAdmin.checked) {
           passwordContainer.style.display = 'none';
         }
@@ -160,8 +150,6 @@ function configurarEventos() {
     });
   }
   
-  // 🆕 Botón para ver usuarios eliminados (solo Super Admin)
-  // ESTE BLOQUE ESTABA FUERA DE LA FUNCIÓN, POR ESO FALLABA
   const btnVerEliminados = document.getElementById('btnVerEliminados');
   if (btnVerEliminados) {
     if (usuarioLogueado.es_super_admin) {
@@ -271,7 +259,6 @@ function renderizarTabla() {
     
     const expediente = u.numero_expediente || '<span style="color:#888;">-</span>';
     
-    // DETERMINAR SI EL ADMIN LOGUEADO PUEDE EDITAR/ELIMINAR/SELECCIONAR ESTE USUARIO
     let puedeEditar = false;
     let puedeEliminar = false;
     let puedeSeleccionar = false;
@@ -288,7 +275,6 @@ function renderizarTabla() {
       }
     }
     
-    // 🆕 NUEVO: Checkbox de selección
     let checkboxHTML = '';
     if (puedeSeleccionar) {
       const isChecked = usuariosSeleccionados.has(u.id) ? 'checked' : '';
@@ -322,7 +308,6 @@ function renderizarTabla() {
     
     tbody.appendChild(tr);
     
-    // 🆕 NUEVO: Event listener para checkbox
     const checkbox = tr.querySelector('.checkbox-usuario');
     if (checkbox) {
       checkbox.addEventListener('change', (e) => {
@@ -541,7 +526,7 @@ async function abrirModalUsuario(usuarioId = null) {
 }
 
 // ============================================
-// 8. GUARDAR USUARIO (FUNCIÓN ÚNICA)
+// 8. GUARDAR USUARIO (CON LOGS)
 // ============================================
 
 async function guardarUsuario() {
@@ -558,7 +543,6 @@ async function guardarUsuario() {
   
   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
-  // VALIDACIÓN DE TODOS LOS CAMPOS OBLIGATORIOS (excepto foto)
   if (!cedula) {
     alert('⚠️ La cédula es obligatoria');
     return;
@@ -690,6 +674,26 @@ async function guardarUsuario() {
     
     if (error) throw error;
     
+    // 🆕 REGISTRAR LOG DE CREAR/EDITAR USUARIO
+    if (typeof registrarLog === 'function') {
+      const accionLog = usuarioEditandoId ? 'Editar usuario' : 'Crear usuario';
+      await registrarLog({
+        accion: accionLog,
+        modulo: 'Usuarios',
+        descripcion: `${accionLog}: ${nombre} ${apellido} (Cédula: ${cedula})`,
+        detalles: {
+          cedula: cedula,
+          nombre_completo: `${nombre} ${apellido}`,
+          nivel: nivel,
+          jerarquia: jerarquia,
+          expediente: expediente,
+          es_super_admin: esSuperAdmin,
+          tiene_foto: !!fotoUrl,
+          es_edicion: !!usuarioEditandoId
+        }
+      });
+    }
+    
     document.getElementById('modalUsuario').style.display = 'none';
     
     if (!usuarioEditandoId && nivel === 'administrador' && password) {
@@ -717,7 +721,6 @@ async function guardarUsuario() {
 async function generarSiguienteExpediente() {
   const añoActual = new Date().getFullYear().toString().slice(-2);
   
-  // Buscar el número más alto en los expedientes existentes
   let maxNumero = 0;
   todosLosUsuarios.forEach(u => {
     if (u.numero_expediente) {
@@ -729,13 +732,12 @@ async function generarSiguienteExpediente() {
     }
   });
   
-  // Formato con 4 dígitos (ej: 0002 en lugar de 00002)
   const siguienteNum = (maxNumero + 1).toString().padStart(4, '0');
   return `ID-ZU-CPNB-${siguienteNum}-${añoActual}`;
 }
 
 // ============================================
-// 9. ELIMINAR USUARIO (INDIVIDUAL CON RESPALDO)
+// 9. ELIMINAR USUARIO (INDIVIDUAL CON LOG)
 // ============================================
 
 async function confirmarEliminar() {
@@ -749,7 +751,6 @@ async function confirmarEliminar() {
     const usuario = todosLosUsuarios.find(u => u.id === usuarioEliminandoId);
     const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
     
-    // 🆕 NUEVO: Guardar en respaldo antes de eliminar
     if (usuario) {
       await supabaseClient.from('usuarios_eliminados').insert({
         usuario_id_original: usuario.id,
@@ -788,10 +789,27 @@ async function confirmarEliminar() {
       throw error;
     }
     
+    // 🆕 REGISTRAR LOG DE ELIMINAR USUARIO
+    if (typeof registrarLog === 'function' && usuario) {
+      await registrarLog({
+        accion: 'Eliminar usuario',
+        modulo: 'Usuarios',
+        descripcion: `Usuario eliminado: ${usuario.primer_nombre} ${usuario.primer_apellido} (Cédula: ${usuario.cedula})`,
+        detalles: {
+          cedula: usuario.cedula,
+          nombre_completo: `${usuario.primer_nombre} ${usuario.primer_apellido}`,
+          nivel: usuario.nivel_acceso,
+          jerarquia: usuario.jerarquia,
+          expediente: usuario.numero_expediente,
+          es_super_admin: usuario.es_super_admin,
+          tipo_eliminacion: 'Individual'
+        }
+      });
+    }
+    
     document.getElementById('modalEliminar').style.display = 'none';
     alert('✅ Usuario eliminado correctamente y guardado en el respaldo');
     
-    // Recargar la lista desde la base de datos
     await cargarUsuarios();
     
   } catch (error) {
@@ -805,7 +823,7 @@ async function confirmarEliminar() {
 }
 
 // ============================================
-// 10. 🆕 FUNCIONES DE SELECCIÓN MASIVA
+// 10. FUNCIONES DE SELECCIÓN MASIVA (CON LOGS)
 // ============================================
 
 function seleccionarTodosUsuarios() {
@@ -852,7 +870,6 @@ async function eliminarSeleccionados() {
   
   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
-  // Filtrar solo usuarios normales (no admins)
   const usuariosAEliminar = todosLosUsuarios.filter(u => 
     usuariosSeleccionados.has(u.id) && u.nivel_acceso === 'usuario'
   );
@@ -872,7 +889,6 @@ async function eliminarSeleccionados() {
   
   try {
     for (const usuario of usuariosAEliminar) {
-      // Guardar en respaldo
       await supabaseClient.from('usuarios_eliminados').insert({
         usuario_id_original: usuario.id,
         cedula: usuario.cedula,
@@ -889,7 +905,6 @@ async function eliminarSeleccionados() {
         razon_eliminacion: 'Eliminación masiva por administrador'
       });
       
-      // Eliminar foto si existe
       if (usuario.foto_url) {
         try {
           const urlParts = usuario.foto_url.split('/');
@@ -900,8 +915,22 @@ async function eliminarSeleccionados() {
         }
       }
       
-      // Eliminar usuario
       await supabaseClient.from('usuarios').delete().eq('id', usuario.id);
+    }
+    
+    // 🆕 REGISTRAR LOG DE ELIMINACIÓN MASIVA SELECCIONADA
+    if (typeof registrarLog === 'function') {
+      await registrarLog({
+        accion: 'Eliminar usuarios masivamente',
+        modulo: 'Usuarios',
+        descripcion: `Se eliminaron ${usuariosAEliminar.length} usuarios seleccionados`,
+        detalles: {
+          cantidad: usuariosAEliminar.length,
+          cedulas: usuariosAEliminar.map(u => u.cedula),
+          nombres: usuariosAEliminar.map(u => `${u.primer_nombre} ${u.primer_apellido}`),
+          tipo_eliminacion: 'Masiva seleccionada'
+        }
+      });
     }
     
     alert(`✅ ${usuariosAEliminar.length} usuarios eliminados correctamente`);
@@ -920,7 +949,6 @@ async function eliminarSeleccionados() {
 async function eliminarTodosUsuarios() {
   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
-  // Solo usuarios normales
   const usuariosNormales = todosLosUsuarios.filter(u => u.nivel_acceso === 'usuario');
   
   if (usuariosNormales.length === 0) {
@@ -938,7 +966,6 @@ async function eliminarTodosUsuarios() {
   
   try {
     for (const usuario of usuariosNormales) {
-      // Guardar en respaldo
       await supabaseClient.from('usuarios_eliminados').insert({
         usuario_id_original: usuario.id,
         cedula: usuario.cedula,
@@ -955,7 +982,6 @@ async function eliminarTodosUsuarios() {
         razon_eliminacion: 'Eliminación masiva de todos los usuarios'
       });
       
-      // Eliminar foto si existe
       if (usuario.foto_url) {
         try {
           const urlParts = usuario.foto_url.split('/');
@@ -966,8 +992,22 @@ async function eliminarTodosUsuarios() {
         }
       }
       
-      // Eliminar usuario
       await supabaseClient.from('usuarios').delete().eq('id', usuario.id);
+    }
+    
+    // 🆕 REGISTRAR LOG DE ELIMINACIÓN MASIVA TOTAL
+    if (typeof registrarLog === 'function') {
+      await registrarLog({
+        accion: 'Eliminar todos los usuarios',
+        modulo: 'Usuarios',
+        descripcion: `Se eliminaron TODOS los ${usuariosNormales.length} usuarios normales del sistema`,
+        detalles: {
+          cantidad: usuariosNormales.length,
+          cedulas: usuariosNormales.map(u => u.cedula),
+          nombres: usuariosNormales.map(u => `${u.primer_nombre} ${u.primer_apellido}`),
+          tipo_eliminacion: 'Masiva total (todos los usuarios normales)'
+        }
+      });
     }
     
     alert(`✅ ${usuariosNormales.length} usuarios normales eliminados correctamente`);
