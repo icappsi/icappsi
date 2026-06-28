@@ -140,7 +140,20 @@ loginForm.addEventListener('submit', async (e) => {
       .insert({ cedula: cedula, usuario_id: data.id });
     
     // Guardar datos del usuario en sessionStorage
-    sessionStorage.setItem('usuario', JSON.stringify({
+    // 🆕 NUEVO: Registrar log de inicio de sesión
+if (typeof registrarLog === 'function') {
+  await registrarLog({
+    accion: 'Inicio de sesión',
+    modulo: 'Autenticación',
+    descripcion: `El usuario ${data.primer_nombre} ${data.primer_apellido} inició sesión en el sistema`,
+    detalles: {
+      cedula: data.cedula,
+      nivel: data.nivel_acceso,
+      es_super_admin: data.es_super_admin || false,
+      tipo_usuario: data.es_super_admin ? 'Super Admin' : (data.nivel_acceso === 'administrador' ? 'Administrador' : 'Usuario Normal')
+    }
+  });
+}
       id: data.id,
       cedula: data.cedula,
       nombre: data.primer_nombre,
