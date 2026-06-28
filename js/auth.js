@@ -2,12 +2,10 @@
 // AUTENTICACIÓN Y SESIONES
 // ============================================
 
-// Función para cerrar sesión
 async function cerrarSesion() {
   const usuarioStr = sessionStorage.getItem('usuario');
   
   if (!usuarioStr) {
-    // Si no hay sesión, redirigir al login
     window.location.href = 'index.html';
     return;
   }
@@ -15,15 +13,15 @@ async function cerrarSesion() {
   const usuario = JSON.parse(usuarioStr);
   
   try {
-    // 🆕 NUEVO: Registrar log de cierre de sesión ANTES de limpiar sessionStorage
-    if (typeof registrarLog === 'function') {
-      await registrarLog({
+    // 🆕 REGISTRAR LOG DE CIERRE DE SESIÓN CON BEACON (antes de limpiar sessionStorage)
+    if (typeof registrarLogBeacon === 'function') {
+      registrarLogBeacon({
+        usuario: usuario,
         accion: 'Cierre de sesión',
         modulo: 'Autenticación',
-        descripcion: `El usuario ${usuario.nombre} ${usuario.apellido} cerró sesión manualmente`,
+        descripcion: `El usuario ${usuario.nombre} ${usuario.apellido} cerró sesión`,
         detalles: { 
           cedula: usuario.cedula,
-          tipo_cierre: 'Botón Cerrar Sesión',
           nivel: usuario.nivel_acceso,
           es_super_admin: usuario.es_super_admin || false
         }
@@ -56,10 +54,7 @@ function verificarSesion() {
   const usuarioStr = sessionStorage.getItem('usuario');
   
   if (!usuarioStr) {
-    // Limpiar sessionStorage
     sessionStorage.removeItem('usuario');
-    
-    // Redirigir al login
     window.location.href = 'index.html';
     return false;
   }
