@@ -331,6 +331,24 @@ text-transform: uppercase;
   z-index: 100;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
+/* Modal de Cámara */
+#modalCamara .modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+#videoCamara {
+  background: #000;
+  border-radius: 8px;
+}
+#fotoCapturada {
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
 
 @media (max-width: 768px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -510,18 +528,54 @@ Solo se eliminarán los usuarios normales. Los administradores serán ignorados.
   </p>
 </div>
 
-    <div class="form-group">
-      <label>Foto de Perfil:</label>
-      <input type="file" id="usuarioFoto" accept="image/*" class="form-control">
-      <div id="fotoPreviewContainer" style="display: none;">
-        <img id="fotoPreview" alt="Preview">
-      </div>
-    </div>
+   <div class="form-group">
+<label>Foto de Perfil:</label>
+<div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+  <input type="file" id="usuarioFoto" accept="image/*" class="form-control" style="flex: 1; min-width: 200px;">
+  <button type="button" id="btnAbrirCamara" class="btn btn-info" style="white-space: nowrap;">
+    📷 Tomar Foto con Cámara
+  </button>
+</div>
+<div id="fotoPreviewContainer" style="display: none;">
+  <img id="fotoPreview" alt="Preview">
+  <button type="button" id="btnQuitarFoto" class="btn btn-danger" style="margin-top: 10px; padding: 6px 15px; font-size: 12px;">
+    ❌ Quitar Foto
+  </button>
+</div>
+</div>
 
-    <div style="display: flex; gap: 10px; margin-top: 20px;">
-      <button id="btnGuardarUsuario" class="btn btn-primary" style="flex: 1;">💾 Guardar</button>
-      <button id="btnCancelarUsuario" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+<!-- Modal de Cámara -->
+<div id="modalCamara" class="modal-overlay" style="display: none; z-index: 2000;">
+  <div class="modal-content" style="max-width: 600px;">
+    <h2 style="color: #4a0404; margin-bottom: 20px;">📷 Tomar Foto</h2>
+    
+    <div id="camaraContainer" style="position: relative; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+      <video id="videoCamara" autoplay playsinline style="width: 100%; display: block;"></video>
+      <canvas id="canvasCamara" style="display: none;"></canvas>
     </div>
+    
+    <div id="fotoCapturadaContainer" style="display: none; text-align: center; margin-bottom: 20px;">
+      <img id="fotoCapturada" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 3px solid #6b0f0f;">
+    </div>
+    
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <button type="button" id="btnCapturar" class="btn btn-primary" style="flex: 1;">
+        📸 Capturar Foto
+      </button>
+      <button type="button" id="btnNuevaFoto" class="btn btn-warning" style="flex: 1; display: none;">
+        🔄 Tomar Otra Foto
+      </button>
+      <button type="button" id="btnUsarFoto" class="btn btn-success" style="flex: 1; display: none;">
+        ✅ Usar Esta Foto
+      </button>
+      <button type="button" id="btnCerrarCamara" class="btn btn-secondary" style="flex: 1;">
+        ❌ Cancelar
+      </button>
+    </div>
+    
+    <p style="margin-top: 15px; font-size: 12px; color: #888; text-align: center;">
+      💡 Asegúrate de permitir el acceso a la cámara cuando el navegador lo solicite
+    </p>
   </div>
 </div>
 
