@@ -10,6 +10,8 @@ let usuarioEditandoId = null;
 let usuarioEliminandoId = null;
 let fotoUrlActual = null;
 let usuariosSeleccionados = new Set();
+
+// 🆕 Variables para la cámara
 let streamCamara = null;
 let fotoCapturadaData = null;
 let modoCamaraActual = 'user'; // 'user' = frontal, 'environment' = trasera
@@ -43,144 +45,109 @@ document.addEventListener('DOMContentLoaded', () => {
 function configurarEventos() {
   const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
   
-  // Verificar que todos los elementos existan antes de agregar listeners
-  const elementos = {
-    buscarUsuario: document.getElementById('buscarUsuario'),
-    btnNuevoUsuario: document.getElementById('btnNuevoUsuario'),
-    btnRefrescar: document.getElementById('btnRefrescar'),
-    btnGuardarUsuario: document.getElementById('btnGuardarUsuario'),
-    btnCancelarUsuario: document.getElementById('btnCancelarUsuario'),
-    btnConfirmarEliminar: document.getElementById('btnConfirmarEliminar'),
-    btnCancelarEliminar: document.getElementById('btnCancelarEliminar'),
-    btnSeleccionarTodos: document.getElementById('btnSeleccionarTodos'),
-    btnDeseleccionarTodos: document.getElementById('btnDeseleccionarTodos'),
-    btnEliminarSeleccionados: document.getElementById('btnEliminarSeleccionados'),
-    btnCancelarSeleccion: document.getElementById('btnCancelarSeleccion'),
-    btnEliminarTodos: document.getElementById('btnEliminarTodos'),
-    usuarioCedula: document.getElementById('usuarioCedula'),
-    usuarioFoto: document.getElementById('usuarioFoto'),
-    btnAbrirCamara: document.getElementById('btnAbrirCamara'),
-    btnCapturar: document.getElementById('btnCapturar'),
-    btnNuevaFoto: document.getElementById('btnNuevaFoto'),
-    btnUsarFoto: document.getElementById('btnUsarFoto'),
-    btnCerrarCamara: document.getElementById('btnCerrarCamara'),
-    btnQuitarFoto: document.getElementById('btnQuitarFoto'),
-    btnCambiarCamara: document.getElementById('btnCambiarCamara'),
-    usuarioEsSuperAdmin: document.getElementById('usuarioEsSuperAdmin'),
-    usuarioNivel: document.getElementById('usuarioNivel'),
-    btnVerEliminados: document.getElementById('btnVerEliminados')
-  };
+  document.getElementById('buscarUsuario').addEventListener('input', (e) => {
+    filtrarUsuarios(e.target.value);
+  });
   
-  // Agregar listeners solo si los elementos existen
-  if (elementos.buscarUsuario) {
-    elementos.buscarUsuario.addEventListener('input', (e) => {
-      filtrarUsuarios(e.target.value);
-    });
+  document.getElementById('btnNuevoUsuario').addEventListener('click', () => {
+    abrirModalUsuario();
+  });
+  
+  document.getElementById('btnRefrescar').addEventListener('click', () => {
+    cargarUsuarios();
+  });
+  
+  document.getElementById('btnGuardarUsuario').addEventListener('click', guardarUsuario);
+  
+  document.getElementById('btnCancelarUsuario').addEventListener('click', () => {
+    document.getElementById('modalUsuario').style.display = 'none';
+  });
+  
+  document.getElementById('btnConfirmarEliminar').addEventListener('click', confirmarEliminar);
+  
+  document.getElementById('btnCancelarEliminar').addEventListener('click', () => {
+    document.getElementById('modalEliminar').style.display = 'none';
+  });
+  
+  const btnSeleccionarTodos = document.getElementById('btnSeleccionarTodos');
+  if (btnSeleccionarTodos) {
+    btnSeleccionarTodos.addEventListener('click', seleccionarTodosUsuarios);
   }
   
-  if (elementos.btnNuevoUsuario) {
-    elementos.btnNuevoUsuario.addEventListener('click', () => {
-      abrirModalUsuario();
-    });
+  const btnDeseleccionarTodos = document.getElementById('btnDeseleccionarTodos');
+  if (btnDeseleccionarTodos) {
+    btnDeseleccionarTodos.addEventListener('click', deseleccionarTodosUsuarios);
   }
   
-  if (elementos.btnRefrescar) {
-    elementos.btnRefrescar.addEventListener('click', () => {
-      cargarUsuarios();
-    });
+  const btnEliminarSeleccionados = document.getElementById('btnEliminarSeleccionados');
+  if (btnEliminarSeleccionados) {
+    btnEliminarSeleccionados.addEventListener('click', eliminarSeleccionados);
   }
   
-  if (elementos.btnGuardarUsuario) {
-    elementos.btnGuardarUsuario.addEventListener('click', guardarUsuario);
+  const btnCancelarSeleccion = document.getElementById('btnCancelarSeleccion');
+  if (btnCancelarSeleccion) {
+    btnCancelarSeleccion.addEventListener('click', cancelarSeleccion);
   }
   
-  if (elementos.btnCancelarUsuario) {
-    elementos.btnCancelarUsuario.addEventListener('click', () => {
-      document.getElementById('modalUsuario').style.display = 'none';
-    });
+  const btnEliminarTodos = document.getElementById('btnEliminarTodos');
+  if (btnEliminarTodos) {
+    btnEliminarTodos.addEventListener('click', eliminarTodosUsuarios);
   }
   
-  if (elementos.btnConfirmarEliminar) {
-    elementos.btnConfirmarEliminar.addEventListener('click', confirmarEliminar);
+  const inputCedula = document.getElementById('usuarioCedula');
+  inputCedula.addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '');
+    if (e.target.value.length > 8) {
+      e.target.value = e.target.value.slice(0, 8);
+    }
+  });
+  
+  document.getElementById('usuarioFoto').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        document.getElementById('fotoPreview').src = event.target.result;
+        document.getElementById('fotoPreviewContainer').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+  
+  // 🆕 NUEVO: Botones de cámara
+  const btnAbrirCamara = document.getElementById('btnAbrirCamara');
+  if (btnAbrirCamara) {
+    btnAbrirCamara.addEventListener('click', () => abrirCamara('user'));
   }
   
-  if (elementos.btnCancelarEliminar) {
-    elementos.btnCancelarEliminar.addEventListener('click', () => {
-      document.getElementById('modalEliminar').style.display = 'none';
-    });
+  const btnCambiarCamara = document.getElementById('btnCambiarCamara');
+  if (btnCambiarCamara) {
+    btnCambiarCamara.addEventListener('click', cambiarCamara);
   }
   
-  if (elementos.btnSeleccionarTodos) {
-    elementos.btnSeleccionarTodos.addEventListener('click', seleccionarTodosUsuarios);
+  const btnCapturar = document.getElementById('btnCapturar');
+  if (btnCapturar) {
+    btnCapturar.addEventListener('click', capturarFoto);
   }
   
-  if (elementos.btnDeseleccionarTodos) {
-    elementos.btnDeseleccionarTodos.addEventListener('click', deseleccionarTodosUsuarios);
+  const btnNuevaFoto = document.getElementById('btnNuevaFoto');
+  if (btnNuevaFoto) {
+    btnNuevaFoto.addEventListener('click', tomarOtraFoto);
   }
   
-  if (elementos.btnEliminarSeleccionados) {
-    elementos.btnEliminarSeleccionados.addEventListener('click', eliminarSeleccionados);
+  const btnUsarFoto = document.getElementById('btnUsarFoto');
+  if (btnUsarFoto) {
+    btnUsarFoto.addEventListener('click', usarFotoCapturada);
   }
   
-  if (elementos.btnCancelarSeleccion) {
-    elementos.btnCancelarSeleccion.addEventListener('click', cancelarSeleccion);
+  const btnCerrarCamara = document.getElementById('btnCerrarCamara');
+  if (btnCerrarCamara) {
+    btnCerrarCamara.addEventListener('click', cerrarCamara);
   }
   
-  if (elementos.btnEliminarTodos) {
-    elementos.btnEliminarTodos.addEventListener('click', eliminarTodosUsuarios);
-  }
-  
-  if (elementos.usuarioCedula) {
-    elementos.usuarioCedula.addEventListener('input', (e) => {
-      e.target.value = e.target.value.replace(/\D/g, '');
-      if (e.target.value.length > 8) {
-        e.target.value = e.target.value.slice(0, 8);
-      }
-    });
-  }
-  
-  if (elementos.usuarioFoto) {
-    elementos.usuarioFoto.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          document.getElementById('fotoPreview').src = event.target.result;
-          document.getElementById('fotoPreviewContainer').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
-  
-  // Botones de cámara (solo si existen)
-  if (elementos.btnAbrirCamara) {
-    elementos.btnAbrirCamara.addEventListener('click', () => abrirCamara('user'));
-  }
-  
-  if (elementos.btnCapturar) {
-    elementos.btnCapturar.addEventListener('click', capturarFoto);
-  }
-  
-  if (elementos.btnNuevaFoto) {
-    elementos.btnNuevaFoto.addEventListener('click', tomarOtraFoto);
-  }
-  
-  if (elementos.btnUsarFoto) {
-    elementos.btnUsarFoto.addEventListener('click', usarFotoCapturada);
-  }
-  
-  if (elementos.btnCerrarCamara) {
-    elementos.btnCerrarCamara.addEventListener('click', cerrarCamara);
-  }
-  
-  // 🆕 NUEVO: Botón para cambiar cámara
-  if (elementos.btnCambiarCamara) {
-    elementos.btnCambiarCamara.addEventListener('click', cambiarCamara);
-  }
-  
-  if (elementos.btnQuitarFoto) {
-    elementos.btnQuitarFoto.addEventListener('click', () => {
+  const btnQuitarFoto = document.getElementById('btnQuitarFoto');
+  if (btnQuitarFoto) {
+    btnQuitarFoto.addEventListener('click', () => {
       document.getElementById('fotoPreviewContainer').style.display = 'none';
       document.getElementById('fotoPreview').src = '';
       fotoUrlActual = null;
@@ -188,8 +155,9 @@ function configurarEventos() {
     });
   }
   
-  if (elementos.usuarioEsSuperAdmin) {
-    elementos.usuarioEsSuperAdmin.addEventListener('change', (e) => {
+  const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
+  if (checkboxSuperAdmin) {
+    checkboxSuperAdmin.addEventListener('change', (e) => {
       const passwordContainer = document.getElementById('passwordContainer');
       const passwordLabel = document.getElementById('passwordLabel');
       
@@ -209,8 +177,9 @@ function configurarEventos() {
     });
   }
   
-  if (elementos.usuarioNivel) {
-    elementos.usuarioNivel.addEventListener('change', (e) => {
+  const selectNivel = document.getElementById('usuarioNivel');
+  if (selectNivel) {
+    selectNivel.addEventListener('change', (e) => {
       const passwordContainer = document.getElementById('passwordContainer');
       const passwordLabel = document.getElementById('passwordLabel');
       const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
@@ -227,11 +196,14 @@ function configurarEventos() {
     });
   }
   
-  if (elementos.btnVerEliminados && usuarioLogueado.es_super_admin) {
-    elementos.btnVerEliminados.style.display = 'inline-block';
-    elementos.btnVerEliminados.addEventListener('click', () => {
-      window.open('usuarios_eliminados.html', '_blank');
-    });
+  const btnVerEliminados = document.getElementById('btnVerEliminados');
+  if (btnVerEliminados) {
+    if (usuarioLogueado.es_super_admin) {
+      btnVerEliminados.style.display = 'inline-block';
+      btnVerEliminados.addEventListener('click', () => {
+        window.open('usuarios_eliminados.html', '_blank');
+      });
+    }
   }
 }
 
@@ -1098,7 +1070,7 @@ async function eliminarTodosUsuarios() {
 }
 
 // ============================================
-// 11. 🆕 FUNCIONES DE CÁMARA (CON FRONTAL/TRASERA)
+// 11. 🆕 FUNCIONES DE CÁMARA (FRONTAL Y TRASERA)
 // ============================================
 
 async function abrirCamara(modo = 'user') {
@@ -1155,10 +1127,8 @@ async function abrirCamara(modo = 'user') {
 
 // 🆕 NUEVA FUNCIÓN: Cambiar entre cámara frontal y trasera
 function cambiarCamara() {
-  // Alternar entre frontal y trasera
   const nuevoModo = modoCamaraActual === 'user' ? 'environment' : 'user';
   
-  // Cerrar la cámara actual y abrir con el nuevo modo
   if (streamCamara) {
     streamCamara.getTracks().forEach(track => track.stop());
     streamCamara = null;
