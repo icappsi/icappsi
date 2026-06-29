@@ -726,6 +726,10 @@ async function generarSiguienteExpediente() {
 // 9. ELIMINAR USUARIO (INDIVIDUAL CON LOG)
 // ============================================
 
+// ============================================
+// 9. ELIMINAR USUARIO (INDIVIDUAL CON LOG Y REASIGNACIÓN)
+// ============================================
+
 async function confirmarEliminar() {
   if (!usuarioEliminandoId) return;
   
@@ -738,6 +742,71 @@ async function confirmarEliminar() {
     const usuarioLogueado = JSON.parse(sessionStorage.getItem('usuario'));
     
     if (usuario) {
+      // 🆕 PASO 1: REASIGNAR MATERIALES CREADOS POR ESTE USUARIO
+      // (Para evitar el error de foreign key "material_apoyo_creado_por_fkey")
+      try {
+        const { data: materialesCreados } = await supabaseClient
+          .from('material_apoyo')
+          .select('id')
+          .eq('creado_por', usuario.id);
+        
+        if (materialesCreados && materialesCreados.length > 0) {
+          const { error: errorReasignar } = await supabaseClient
+            .from('material_apoyo')
+            .update({ creado_por: usuarioLogueado.id })
+            .eq('creado_por', usuario.id);
+          
+          if (errorReasignar) {
+            console.warn('No se pudieron reasignar los materiales:', errorReasignar);
+          } else {
+            console.log(`✅ ${materialesCreados.length} materiales reasignados al super admin`);
+          }
+        }
+      } catch (e) {
+        console.warn('Error al reasignar materiales:', e);
+      }
+      
+      // 🆕 PASO 2: ELIMINAR INTENTOS DE PRUEBAS DEL USUARIO
+      try {
+        await supabaseClient
+          .from('intentos_pruebas')
+          .delete()
+          .eq('usuario_id', usuario.id);
+      } catch (e) {
+        console.warn('Error al eliminar intentos de pruebas:', e);
+      }
+      
+      // 🆕 PASO 3: ELIMINAR CONFIRMACIONES DE LECTURA DEL USUARIO
+      try {
+        await supabaseClient
+          .from('confirmaciones_lectura')
+          .delete()
+          .eq('usuario_id', usuario.id);
+      } catch (e) {
+        console.warn('Error al eliminar confirmaciones:', e);
+      }
+      
+      // 🆕 PASO 4: ELIMINAR ASIGNACIONES DE PRUEBAS DEL USUARIO
+      try {
+        await supabaseClient
+          .from('pruebas_usuarios')
+          .delete()
+          .eq('usuario_id', usuario.id);
+      } catch (e) {
+        console.warn('Error al eliminar asignaciones de pruebas:', e);
+      }
+      
+      // 🆕 PASO 5: ELIMINAR SESIONES ACTIVAS DEL USUARIO
+      try {
+        await supabaseClient
+          .from('sesiones_activas')
+          .delete()
+          .eq('cedula', usuario.cedula);
+      } catch (e) {
+        console.warn('Error al eliminar sesiones activas:', e);
+      }
+      
+      // PASO 6: Guardar en respaldo de usuarios eliminados
       await supabaseClient.from('usuarios_eliminados').insert({
         usuario_id_original: usuario.id,
         cedula: usuario.cedula,
@@ -753,18 +822,20 @@ async function confirmarEliminar() {
         eliminado_por: usuarioLogueado.id,
         razon_eliminacion: 'Eliminación individual por administrador'
       });
-    }
-    
-    if (usuario && usuario.foto_url) {
-      try {
-        const urlParts = usuario.foto_url.split('/');
-        const fileName = urlParts[urlParts.length - 1];
-        await supabaseClient.storage.from('fotos-usuarios').remove([fileName]);
-      } catch (e) {
-        console.warn('No se pudo eliminar la foto:', e);
+      
+      // PASO 7: Eliminar foto del storage si existe
+      if (usuario.foto_url) {
+        try {
+          const urlParts = usuario.foto_url.split('/');
+          const fileName = urlParts[urlParts.length - 1];
+          await supabaseClient.storage.from('fotos-usuarios').remove([fileName]);
+        } catch (e) {
+          console.warn('No se pudo eliminar la foto:', e);
+        }
       }
     }
     
+    // PASO 8: Eliminar el usuario
     const { error } = await supabaseClient
       .from('usuarios')
       .delete()
@@ -775,6 +846,7 @@ async function confirmarEliminar() {
       throw error;
     }
     
+    // 🆕 REGISTRAR LOG DE ELIMINAR USUARIO
     if (typeof registrarLog === 'function' && usuario) {
       await registrarLog({
         accion: 'Eliminar usuario',
