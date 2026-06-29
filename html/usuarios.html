@@ -73,8 +73,6 @@ body {
 }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-
-/* Tabla */
 .tabla-container {
   overflow-x: auto;
   background: white;
@@ -111,8 +109,6 @@ body {
 .tabla-usuarios tbody tr:nth-child(even):hover {
   background: #fff5f5;
 }
-
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -136,8 +132,6 @@ body {
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0,0,0,0.3);
 }
-
-/* Foto miniatura clickeable */
 .foto-mini {
   width: 40px;
   height: 40px;
@@ -164,8 +158,6 @@ body {
   font-size: 18px;
   cursor: default;
 }
-
-/* Modal de foto grande (Lightbox) */
 .lightbox-overlay {
   position: fixed;
   top: 0;
@@ -217,16 +209,13 @@ body {
   font-weight: 600;
   font-size: 14px;
 }
-
-/* Badges */
-/* Badges */
 .badge {
-display: inline-block;
-padding: 3px 10px;
-border-radius: 12px;
-font-size: 11px;
-font-weight: 600;
-text-transform: uppercase;
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 .badge-superadmin { 
   background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%); 
@@ -236,8 +225,6 @@ text-transform: uppercase;
 }
 .badge-admin { background: #6b0f0f; color: white; }
 .badge-usuario { background: #0066cc; color: white; }
-
-/* Paginación */
 .pagination {
   display: flex;
   justify-content: center;
@@ -271,8 +258,6 @@ text-transform: uppercase;
   background: #4a0404;
   border: 2px solid #4a0404;
 }
-
-/* Stats */
 .stats-bar {
   display: flex;
   gap: 15px;
@@ -298,8 +283,6 @@ text-transform: uppercase;
   color: #888;
   margin: 5px 0 0;
 }
-
-/* Preview de foto */
 #fotoPreviewContainer {
   text-align: center;
   margin-top: 10px;
@@ -309,8 +292,6 @@ text-transform: uppercase;
   border-radius: 50%;
   border: 3px solid #6b0f0f;
 }
-
-/* Tooltip de causa sanción */
 .causa-tooltip {
   position: relative;
   cursor: help;
@@ -331,7 +312,7 @@ text-transform: uppercase;
   z-index: 100;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
-/* Modal de Cámara */
+/* 🆕 Modal de Cámara */
 #modalCamara .modal-content {
   background: white;
   border-radius: 12px;
@@ -348,8 +329,6 @@ text-transform: uppercase;
 #fotoCapturada {
   box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
-
-
 @media (max-width: 768px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .modal-content { padding: 20px; }
@@ -358,13 +337,11 @@ text-transform: uppercase;
 </head>
 <body>
 <div class="container">
-  <!-- Header -->
   <div class="header">
     <h1>Gestión de Usuarios</h1>
     <p>Programa de Supervisión Intensiva - ICAP</p>
   </div>
 
-  <!-- Estadísticas -->
   <div class="stats-bar">
     <div class="stat-card">
       <h3 id="statTotal">0</h3>
@@ -380,67 +357,61 @@ text-transform: uppercase;
     </div>
   </div>
 
-  <!-- Panel de control -->
   <div class="card">
-   <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-<input type="text" id="buscarUsuario" class="form-control" placeholder="🔍 Buscar por cédula, nombre o apellido..." style="flex: 1; min-width: 250px;">
-<button id="btnNuevoUsuario" class="btn btn-primary">➕ Nuevo Usuario</button>
-<button id="btnRefrescar" class="btn btn-info">🔄 Refrescar</button>
-</div>
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+      <input type="text" id="buscarUsuario" class="form-control" placeholder="🔍 Buscar por cédula, nombre o apellido..." style="flex: 1; min-width: 250px;">
+      <button id="btnNuevoUsuario" class="btn btn-primary">➕ Nuevo Usuario</button>
+      <button id="btnRefrescar" class="btn btn-info">🔄 Refrescar</button>
+    </div>
 
-<!-- NUEVOS BOTONES DE ELIMINACIÓN MASIVA -->
-<div id="accionesMasivas" style="display: none; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-<div>
-<strong>⚠️ <span id="contadorSeleccionados">0</span> usuarios seleccionados</strong>
-<p style="margin: 5px 0 0; font-size: 13px; color: #856404;">
-Solo se eliminarán los usuarios normales. Los administradores serán ignorados.
-</p>
-</div>
-<div style="display: flex; gap: 10px;">
-<button id="btnEliminarSeleccionados" class="btn btn-danger">🗑️ Eliminar Seleccionados</button>
-<button id="btnCancelarSeleccion" class="btn btn-secondary">❌ Cancelar</button>
-</div>
-</div>
-</div>
+    <div id="accionesMasivas" style="display: none; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <strong>⚠️ <span id="contadorSeleccionados">0</span> usuarios seleccionados</strong>
+          <p style="margin: 5px 0 0; font-size: 13px; color: #856404;">
+            Solo se eliminarán los usuarios normales. Los administradores serán ignorados.
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button id="btnEliminarSeleccionados" class="btn btn-danger">🗑️ Eliminar Seleccionados</button>
+          <button id="btnCancelarSeleccion" class="btn btn-secondary">❌ Cancelar</button>
+        </div>
+      </div>
+    </div>
 
-<!-- Botones de acciones masivas -->
-<!-- Botones de acciones masivas -->
-<div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-<button id="btnSeleccionarTodos" class="btn btn-warning">✅ Seleccionar Todos</button>
-<button id="btnDeseleccionarTodos" class="btn btn-secondary">❌ Deseleccionar</button>
-<button id="btnEliminarTodos" class="btn btn-danger" style="background: #cc0000;">⚠️ Eliminar Todos los Usuarios Normales</button>
-<button id="btnVerEliminados" class="btn btn-info" style="display: none;">🗑️ Ver Usuarios Eliminados</button>
-</div>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+      <button id="btnSeleccionarTodos" class="btn btn-warning">✅ Seleccionar Todos</button>
+      <button id="btnDeseleccionarTodos" class="btn btn-secondary">❌ Deseleccionar</button>
+      <button id="btnEliminarTodos" class="btn btn-danger" style="background: #cc0000;">⚠️ Eliminar Todos los Usuarios Normales</button>
+      <button id="btnVerEliminados" class="btn btn-info" style="display: none;">🗑️ Ver Usuarios Eliminados</button>
+    </div>
 
     <div id="contadorUsuarios" style="text-align: center; color: #666; margin-bottom: 15px; font-size: 14px;"></div>
 
-    <!-- Tabla -->
     <div class="tabla-container">
       <table class="tabla-usuarios">
-   <thead>
-<tr>
-<th style="width: 40px;">☑️</th>
-<th>Foto</th>
-<th>Cédula</th>
-<th>Nombre Completo</th>
-<th>Jerarquía</th>
-<th>Nivel</th>
-<th>N° Expediente</th>
-<th>Causa Sanción</th>
-<th>Fecha Creación</th>
-<th>Acciones</th>
-</tr>
-</thead>
+        <thead>
+          <tr>
+            <th style="width: 40px;">☑️</th>
+            <th>Foto</th>
+            <th>Cédula</th>
+            <th>Nombre Completo</th>
+            <th>Jerarquía</th>
+            <th>Nivel</th>
+            <th>N° Expediente</th>
+            <th>Causa Sanción</th>
+            <th>Fecha Creación</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
         <tbody id="tablaUsuariosBody">
           <tr>
-            <td colspan="9" style="text-align: center; padding: 30px; color: #888;">Cargando usuarios...</td>
+            <td colspan="10" style="text-align: center; padding: 30px; color: #888;">Cargando usuarios...</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Paginación -->
     <div id="paginacionUsuarios" class="pagination"></div>
   </div>
 </div>
@@ -472,76 +443,85 @@ Solo se eliminarán los usuarios normales. Los administradores serán ignorados.
       </div>
     </div>
 
-  <div class="grid-2">
-  <div class="form-group">
-    <label>Jerarquía: *</label>
-    <select id="usuarioJerarquia" class="form-control">
-      <option value="">-- Seleccione una jerarquía --</option>
-      <optgroup label="Comisarios">
-        <option value="Comisario Superior">Comisario Superior</option>
-        <option value="Comisario Mayor">Comisario Mayor</option>
-        <option value="Comisario General">Comisario General</option>
-        <option value="Comisario Jefe">Comisario Jefe</option>
-        <option value="Primer Comisario">Primer Comisario</option>
-        <option value="Comisario">Comisario</option>
-      </optgroup>
-      <optgroup label="Inspectores">
-        <option value="Inspector Jefe">Inspector Jefe</option>
-        <option value="Primer Inspector">Primer Inspector</option>
-        <option value="Inspector">Inspector</option>
-      </optgroup>
-      <optgroup label="Oficiales">
-        <option value="Oficial Jefe">Oficial Jefe</option>
-        <option value="Primer Oficial">Primer Oficial</option>
-        <option value="Oficial">Oficial</option>
-      </optgroup>
-    </select>
-  </div>
-  <div class="form-group">
-    <label>Nivel de Acceso: *</label>
-    <select id="usuarioNivel" class="form-control">
-      <option value="usuario">Usuario</option>
-      <option value="administrador">Administrador</option>
-    </select>
-  </div>
-</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Jerarquía: *</label>
+        <select id="usuarioJerarquia" class="form-control">
+          <option value="">-- Seleccione una jerarquía --</option>
+          <optgroup label="Comisarios">
+            <option value="Comisario Superior">Comisario Superior</option>
+            <option value="Comisario Mayor">Comisario Mayor</option>
+            <option value="Comisario General">Comisario General</option>
+            <option value="Comisario Jefe">Comisario Jefe</option>
+            <option value="Primer Comisario">Primer Comisario</option>
+            <option value="Comisario">Comisario</option>
+          </optgroup>
+          <optgroup label="Inspectores">
+            <option value="Inspector Jefe">Inspector Jefe</option>
+            <option value="Primer Inspector">Primer Inspector</option>
+            <option value="Inspector">Inspector</option>
+          </optgroup>
+          <optgroup label="Oficiales">
+            <option value="Oficial Jefe">Oficial Jefe</option>
+            <option value="Primer Oficial">Primer Oficial</option>
+            <option value="Oficial">Oficial</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nivel de Acceso: *</label>
+        <select id="usuarioNivel" class="form-control">
+          <option value="usuario">Usuario</option>
+          <option value="administrador">Administrador</option>
+        </select>
+      </div>
+    </div>
 
-<!-- NUEVO: Checkbox para Super Admin (solo visible para Super Admins) -->
-<div class="form-group" id="superAdminContainer" style="display: none;">
-  <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-    <input type="checkbox" id="usuarioEsSuperAdmin" style="width: 20px; height: 20px;">
-    <span style="color: #6b0f0f; font-weight: 600;">🔑 Marcar como Super Administrador</span>
-  </label>
-  <p style="font-size: 11px; color: #888; margin-top: 5px; margin-left: 30px;">
-    Los Super Administradores pueden crear otros administradores y tienen acceso total al sistema
-  </p>
-</div>
+    <div class="form-group" id="superAdminContainer" style="display: none;">
+      <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+        <input type="checkbox" id="usuarioEsSuperAdmin" style="width: 20px; height: 20px;">
+        <span style="color: #6b0f0f; font-weight: 600;">🔑 Marcar como Super Administrador</span>
+      </label>
+      <p style="font-size: 11px; color: #888; margin-top: 5px; margin-left: 30px;">
+        Los Super Administradores pueden crear otros administradores y tienen acceso total al sistema
+      </p>
+    </div>
+
     <div class="form-group">
       <label>Causa de Sanción:</label>
       <textarea id="usuarioCausaSancion" class="form-control" rows="3" placeholder="Describa la causa de sanción (opcional)"></textarea>
     </div>
-    <div class="form-group" id="passwordContainer" style="display: none;">
-  <label id="passwordLabel">Contraseña de Administrador: *</label>
-  <input type="password" id="usuarioPassword" class="form-control" placeholder="Mínimo 8 caracteres">
-  <p style="font-size: 11px; color: #888; margin-top: 5px;">
-    🔐 Esta contraseña será requerida para que el administrador inicie sesión
-  </p>
-</div>
 
-  <div class="form-group">
-<label>Foto de Perfil:</label>
-<div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-  <input type="file" id="usuarioFoto" accept="image/*" class="form-control" style="flex: 1; min-width: 200px;">
-  <button type="button" id="btnAbrirCamara" class="btn btn-info" style="white-space: nowrap;">
-    📷 Tomar Foto con Cámara
-  </button>
-</div>
-<div id="fotoPreviewContainer" style="display: none;">
-  <img id="fotoPreview" alt="Preview">
-  <button type="button" id="btnQuitarFoto" class="btn btn-danger" style="margin-top: 10px; padding: 6px 15px; font-size: 12px;">
-    ❌ Quitar Foto
-  </button>
-</div>
+    <div class="form-group" id="passwordContainer" style="display: none;">
+      <label id="passwordLabel">Contraseña de Administrador: *</label>
+      <input type="password" id="usuarioPassword" class="form-control" placeholder="Mínimo 8 caracteres">
+      <p style="font-size: 11px; color: #888; margin-top: 5px;">
+        🔐 Esta contraseña será requerida para que el administrador inicie sesión
+      </p>
+    </div>
+
+    <!-- 🆕 CAMPO DE FOTO CON BOTÓN DE CÁMARA -->
+    <div class="form-group">
+      <label>Foto de Perfil:</label>
+      <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+        <input type="file" id="usuarioFoto" accept="image/*" class="form-control" style="flex: 1; min-width: 200px;">
+        <button type="button" id="btnAbrirCamara" class="btn btn-info" style="white-space: nowrap;">
+          📷 Tomar Foto con Cámara
+        </button>
+      </div>
+      <div id="fotoPreviewContainer" style="display: none;">
+        <img id="fotoPreview" alt="Preview">
+        <button type="button" id="btnQuitarFoto" class="btn btn-danger" style="margin-top: 10px; padding: 6px 15px; font-size: 12px;">
+          ❌ Quitar Foto
+        </button>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button id="btnGuardarUsuario" class="btn btn-primary" style="flex: 1;">💾 Guardar</button>
+      <button id="btnCancelarUsuario" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <!-- 🆕 Modal de Cámara -->
