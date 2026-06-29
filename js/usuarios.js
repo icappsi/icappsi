@@ -12,6 +12,7 @@ let fotoUrlActual = null;
 let usuariosSeleccionados = new Set();
 let streamCamara = null;
 let fotoCapturadaData = null;
+let modoCamaraActual = 'user'; // 'user' = frontal, 'environment' = trasera
 
 // ============================================
 // 1. INICIALIZACIÓN
@@ -64,6 +65,7 @@ function configurarEventos() {
     btnUsarFoto: document.getElementById('btnUsarFoto'),
     btnCerrarCamara: document.getElementById('btnCerrarCamara'),
     btnQuitarFoto: document.getElementById('btnQuitarFoto'),
+    btnCambiarCamara: document.getElementById('btnCambiarCamara'),
     usuarioEsSuperAdmin: document.getElementById('usuarioEsSuperAdmin'),
     usuarioNivel: document.getElementById('usuarioNivel'),
     btnVerEliminados: document.getElementById('btnVerEliminados')
@@ -153,7 +155,7 @@ function configurarEventos() {
   
   // Botones de cámara (solo si existen)
   if (elementos.btnAbrirCamara) {
-    elementos.btnAbrirCamara.addEventListener('click', abrirCamara);
+    elementos.btnAbrirCamara.addEventListener('click', () => abrirCamara('user'));
   }
   
   if (elementos.btnCapturar) {
@@ -170,6 +172,11 @@ function configurarEventos() {
   
   if (elementos.btnCerrarCamara) {
     elementos.btnCerrarCamara.addEventListener('click', cerrarCamara);
+  }
+  
+  // 🆕 NUEVO: Botón para cambiar cámara
+  if (elementos.btnCambiarCamara) {
+    elementos.btnCambiarCamara.addEventListener('click', cambiarCamara);
   }
   
   if (elementos.btnQuitarFoto) {
@@ -1089,22 +1096,31 @@ async function eliminarTodosUsuarios() {
     btnEliminar.textContent = '⚠️ Eliminar Todos los Usuarios Normales';
   }
 }
+
 // ============================================
-// 11. 🆕 FUNCIONES DE CÁMARA
+// 11. 🆕 FUNCIONES DE CÁMARA (CON FRONTAL/TRASERA)
 // ============================================
 
-async function abrirCamara() {
+async function abrirCamara(modo = 'user') {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       alert('❌ Tu navegador no soporta el acceso a la cámara.\n\nPor favor usa un navegador moderno como Chrome, Firefox o Edge.');
       return;
     }
     
+    // Detener stream anterior si existe
+    if (streamCamara) {
+      streamCamara.getTracks().forEach(track => track.stop());
+      streamCamara = null;
+    }
+    
+    modoCamaraActual = modo;
+    
     const constraints = {
       video: {
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        facingMode: 'user'
+        facingMode: modo
       }
     };
     
@@ -1135,6 +1151,20 @@ async function abrirCamara() {
       alert('❌ Error al acceder a la cámara: ' + error.message);
     }
   }
+}
+
+// 🆕 NUEVA FUNCIÓN: Cambiar entre cámara frontal y trasera
+function cambiarCamara() {
+  // Alternar entre frontal y trasera
+  const nuevoModo = modoCamaraActual === 'user' ? 'environment' : 'user';
+  
+  // Cerrar la cámara actual y abrir con el nuevo modo
+  if (streamCamara) {
+    streamCamara.getTracks().forEach(track => track.stop());
+    streamCamara = null;
+  }
+  
+  abrirCamara(nuevoModo);
 }
 
 function capturarFoto() {
@@ -1171,7 +1201,8 @@ function tomarOtraFoto() {
   
   fotoCapturadaData = null;
   
-  abrirCamara();
+  // Abrir cámara con el modo actual (frontal o trasera)
+  abrirCamara(modoCamaraActual);
 }
 
 function usarFotoCapturada() {
