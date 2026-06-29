@@ -48,6 +48,15 @@ function inicializarDashboard(user) {
         </div>
       `;
       welcomeBanner.appendChild(causaSancionDiv);
+    } else {
+      // Si ya existe el div, actualizar su contenido
+      causaExistente.style.display = 'block';
+      causaExistente.innerHTML = `
+        <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-top: 15px;">
+          <p style="margin: 0 0 5px 0; font-weight: 600; color: #856404; font-size: 14px;">⚠️ Causa de Sanción:</p>
+          <p style="margin: 0; color: #856404; font-size: 15px; line-height: 1.5;">${user.causa_sancion}</p>
+        </div>
+      `;
     }
   }
   
