@@ -10,6 +10,8 @@ let usuarioEditandoId = null;
 let usuarioEliminandoId = null;
 let fotoUrlActual = null;
 let usuariosSeleccionados = new Set();
+let streamCamara = null;
+let fotoCapturadaData = null;
 
 // ============================================
 // 1. INICIALIZACIÓN
@@ -108,6 +110,41 @@ function configurarEventos() {
       reader.readAsDataURL(file);
     }
   });
+  // 🆕 NUEVO: Botones de cámara
+const btnAbrirCamara = document.getElementById('btnAbrirCamara');
+if (btnAbrirCamara) {
+  btnAbrirCamara.addEventListener('click', abrirCamara);
+}
+
+const btnCapturar = document.getElementById('btnCapturar');
+if (btnCapturar) {
+  btnCapturar.addEventListener('click', capturarFoto);
+}
+
+const btnNuevaFoto = document.getElementById('btnNuevaFoto');
+if (btnNuevaFoto) {
+  btnNuevaFoto.addEventListener('click', tomarOtraFoto);
+}
+
+const btnUsarFoto = document.getElementById('btnUsarFoto');
+if (btnUsarFoto) {
+  btnUsarFoto.addEventListener('click', usarFotoCapturada);
+}
+
+const btnCerrarCamara = document.getElementById('btnCerrarCamara');
+if (btnCerrarCamara) {
+  btnCerrarCamara.addEventListener('click', cerrarCamara);
+}
+
+const btnQuitarFoto = document.getElementById('btnQuitarFoto');
+if (btnQuitarFoto) {
+  btnQuitarFoto.addEventListener('click', () => {
+    document.getElementById('fotoPreviewContainer').style.display = 'none';
+    document.getElementById('fotoPreview').src = '';
+    fotoUrlActual = null;
+    document.getElementById('usuarioFoto').value = '';
+  });
+}
   
   const checkboxSuperAdmin = document.getElementById('usuarioEsSuperAdmin');
   if (checkboxSuperAdmin) {
@@ -1021,4 +1058,122 @@ async function eliminarTodosUsuarios() {
     btnEliminar.disabled = false;
     btnEliminar.textContent = '⚠️ Eliminar Todos los Usuarios Normales';
   }
+}
+// ============================================
+// 11. 🆕 FUNCIONES DE CÁMARA
+// ============================================
+
+async function abrirCamara() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('❌ Tu navegador no soporta el acceso a la cámara.\n\nPor favor usa un navegador moderno como Chrome, Firefox o Edge.');
+      return;
+    }
+    
+    const constraints = {
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: 'user'
+      }
+    };
+    
+    streamCamara = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    const video = document.getElementById('videoCamara');
+    video.srcObject = streamCamara;
+    
+    document.getElementById('modalCamara').style.display = 'flex';
+    document.getElementById('camaraContainer').style.display = 'block';
+    document.getElementById('fotoCapturadaContainer').style.display = 'none';
+    document.getElementById('btnCapturar').style.display = 'block';
+    document.getElementById('btnNuevaFoto').style.display = 'none';
+    document.getElementById('btnUsarFoto').style.display = 'none';
+    
+    fotoCapturadaData = null;
+    
+  } catch (error) {
+    console.error('Error al acceder a la cámara:', error);
+    
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      alert('❌ Permiso de cámara denegado.\n\nPor favor permite el acceso a la cámara en la configuración de tu navegador.');
+    } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+      alert('❌ No se encontró ninguna cámara en tu dispositivo.\n\nVerifica que tu cámara esté conectada y funcionando.');
+    } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+      alert('❌ La cámara está siendo usada por otra aplicación.\n\nCierra otras aplicaciones que puedan estar usando la cámara e intenta de nuevo.');
+    } else {
+      alert('❌ Error al acceder a la cámara: ' + error.message);
+    }
+  }
+}
+
+function capturarFoto() {
+  const video = document.getElementById('videoCamara');
+  const canvas = document.getElementById('canvasCamara');
+  const context = canvas.getContext('2d');
+  
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+  fotoCapturadaData = canvas.toDataURL('image/jpeg', 0.9);
+  
+  document.getElementById('fotoCapturada').src = fotoCapturadaData;
+  document.getElementById('camaraContainer').style.display = 'none';
+  document.getElementById('fotoCapturadaContainer').style.display = 'block';
+  document.getElementById('btnCapturar').style.display = 'none';
+  document.getElementById('btnNuevaFoto').style.display = 'block';
+  document.getElementById('btnUsarFoto').style.display = 'block';
+  
+  if (streamCamara) {
+    streamCamara.getTracks().forEach(track => track.stop());
+    streamCamara = null;
+  }
+}
+
+function tomarOtraFoto() {
+  document.getElementById('fotoCapturadaContainer').style.display = 'none';
+  document.getElementById('camaraContainer').style.display = 'block';
+  document.getElementById('btnCapturar').style.display = 'block';
+  document.getElementById('btnNuevaFoto').style.display = 'none';
+  document.getElementById('btnUsarFoto').style.display = 'none';
+  
+  fotoCapturadaData = null;
+  
+  abrirCamara();
+}
+
+function usarFotoCapturada() {
+  if (!fotoCapturadaData) {
+    alert('❌ No hay foto capturada');
+    return;
+  }
+  
+  document.getElementById('fotoPreview').src = fotoCapturadaData;
+  document.getElementById('fotoPreviewContainer').style.display = 'block';
+  
+  // Convertir data URL a File para que se suba como archivo
+  fetch(fotoCapturadaData)
+    .then(res => res.blob())
+    .then(blob => {
+      const file = new File([blob], `foto_capturada_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      
+      document.getElementById('usuarioFoto').files = dataTransfer.files;
+    });
+  
+  cerrarCamara();
+}
+
+function cerrarCamara() {
+  if (streamCamara) {
+    streamCamara.getTracks().forEach(track => track.stop());
+    streamCamara = null;
+  }
+  
+  document.getElementById('modalCamara').style.display = 'none';
+  fotoCapturadaData = null;
 }
