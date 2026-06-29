@@ -114,7 +114,7 @@ function configurarEventos() {
     }
   });
   
-  // 🆕 NUEVO: Botones de cámara
+  // 🆕 NUEVO: Botones de cámara (con verificación de existencia)
   const btnAbrirCamara = document.getElementById('btnAbrirCamara');
   if (btnAbrirCamara) {
     btnAbrirCamara.addEventListener('click', () => abrirCamara('user'));
