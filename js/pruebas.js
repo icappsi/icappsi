@@ -50,7 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function configurarModales() {
   document.querySelectorAll('.modal-overlay').forEach(modal => {
+    // 🆕 NO cerrar al hacer clic fuera en estos modales importantes
     if (modal.id === 'modalPrueba') return;
+    if (modal.id === 'modalPregunta') return;
+    if (modal.id === 'modalPruebaUsuario') return;
     
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.style.display = 'none';
