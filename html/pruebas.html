@@ -228,6 +228,14 @@ cursor: not-allowed;
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
+    border-radius: 0 !important;
+  }
+  
+  /* 🆕 Quitar padding del modal overlay también */
+  #modalDetalle {
+    padding: 0 !important;
+    margin: 0 !important;
   }
   
   /* Ocultar botones y elementos no imprimibles */
@@ -240,9 +248,10 @@ cursor: not-allowed;
   }
   
   /* 🆕 Configuración de página CARTA (Letter) */
+  /* 🆕 Configuración de página CARTA (Letter) - MARGEN SUPERIOR REDUCIDO */
   @page { 
     size: letter portrait;
-    margin: 1cm 1.5cm;
+    margin: 0.5cm 1.5cm 1cm 1.5cm;
   }
   
   /* Estilos del body para impresión */
@@ -268,7 +277,24 @@ cursor: not-allowed;
     break-inside: avoid !important;
     margin-bottom: 12px !important;
   }
+    /* 🆕 ELIMINAR ESPACIO SUPERIOR - Logo y primer elemento pegado arriba */
+  .print-area > div:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
   
+  .print-area > div:first-child img {
+    margin-top: 0 !important;
+    margin-bottom: 5px !important;
+  }
+  
+  .print-area > div:first-child h1 {
+    margin-top: 0 !important;
+  }
+  
+  .print-area > div:first-child p {
+    margin-top: 0 !important;
+  }
   /* 🆕 Títulos no se separan de su contenido */
   .print-area h3 {
     page-break-after: avoid !important;
