@@ -1011,8 +1011,21 @@ async function verDetalleIntento(intentoId, pruebaId) {
 async function cargarPruebasUsuario() {
   const lista = document.getElementById('listaPruebasUsuario');
   lista.innerHTML = '<p style="text-align:center; color:#888;">Cargando pruebas...</p>';
-  
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+  
+  // 🆕 NUEVO: Si es administrador, NO mostrar pruebas para resolver
+  if (usuario.nivel_acceso === 'administrador') {
+    lista.innerHTML = `
+      <div style="text-align: center; padding: 60px 20px; color: #888;">
+        <p style="font-size: 64px; margin-bottom: 20px;">🔧</p>
+        <h3 style="color: #4a0404; margin-bottom: 10px;">Modo Administrador</h3>
+        <p style="margin-bottom: 15px;">Como administrador, puedes <strong>crear, editar y gestionar</strong> las pruebas desde el panel superior.</p>
+        <p style="font-size: 13px; color: #999;">Las pruebas solo están disponibles para los usuarios regulares.</p>
+      </div>
+    `;
+    return;
+  }
+  
   const ahora = new Date();
   
   const { data: pruebas } = await supabaseClient
@@ -1064,21 +1077,39 @@ async function cargarPruebasUsuario() {
       const estadoTxt = intentoCompletado.puntuacion >= 60 ? 'Aprobado' : 'Reprobado';
       const color = intentoCompletado.puntuacion >= 60 ? '#28a745' : '#dc3545';
       const icono = intentoCompletado.puntuacion >= 60 ? '✅' : '❌';
+      const bgResultado = intentoCompletado.puntuacion >= 60 ? '#d4edda' : '#f8d7da';
       
       card.innerHTML = `
         <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
           <span style="font-size:48px;">${icono}</span>
-          <div>
+          <div style="flex:1;">
             <h3 style="color:#4a0404; margin:0 0 5px; font-size:20px;">${p.titulo}</h3>
             <p style="color:#666; margin:0; font-size:14px;">${p.descripcion || 'Sin descripción'}</p>
           </div>
+          <span style="padding:6px 14px; background:${color}; color:white; border-radius:20px; font-size:12px; font-weight:700;">
+            ${estadoTxt.toUpperCase()}
+          </span>
         </div>
-        <div style="background:${color}15; border:2px solid ${color}; border-radius:8px; padding:20px; text-align:center;">
-          <p style="margin:0 0 10px; font-size:14px; color:#666; font-weight:600;">PRUEBA COMPLETADA</p>
-          <p style="margin:0 0 5px; font-size:48px; font-weight:700; color:${color};">${pct}%</p>
-          <p style="margin:0 0 10px; font-size:20px; font-weight:600; color:${color};">${estadoTxt}</p>
-          <p style="margin:0; font-size:13px; color:#888;">Respuestas correctas: ${intentoCompletado.respuestas_correctas} de ${intentoCompletado.total_preguntas}</p>
-          <p style="margin:10px 0 0; font-size:12px; color:#999;">Si necesitas realizar esta prueba nuevamente, contacta al administrador.</p>
+        <div style="background:${bgResultado}; border:2px solid ${color}; border-radius:12px; padding:25px; text-align:center;">
+          <p style="margin:0 0 5px; font-size:12px; color:#666; font-weight:600; text-transform:uppercase; letter-spacing:1px;">
+            ${icono} Prueba Completada
+          </p>
+          <p style="margin:10px 0; font-size:56px; font-weight:800; color:${color}; line-height:1;">${pct}%</p>
+          <p style="margin:0 0 15px; font-size:18px; font-weight:700; color:${color};">${estadoTxt}</p>
+          <div style="background:white; border-radius:8px; padding:12px; margin:15px 0;">
+            <p style="margin:0; font-size:14px; color:#555;">
+              Respuestas correctas: <strong style="color:#4a0404;">${intentoCompletado.respuestas_correctas}</strong> de <strong>${intentoCompletado.total_preguntas}</strong>
+            </p>
+            <p style="margin:5px 0 0; font-size:12px; color:#888;">
+              Fecha: ${new Date(intentoCompletado.fecha_fin).toLocaleString('es-VE')}
+            </p>
+          </div>
+          <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:10px; margin-top:10px;">
+            <p style="margin:0; font-size:12px; color:#856404;">
+              ⚠️ <strong>No puedes realizar esta prueba nuevamente.</strong><br>
+              Si necesitas un reintento, contacta al administrador.
+            </p>
+          </div>
         </div>
       `;
     } else {
@@ -1103,7 +1134,28 @@ async function cargarPruebasUsuario() {
 // ============================================
 
 async function iniciarPrueba(pruebaId) {
-  if (!confirm('¿Iniciar esta prueba? Una vez iniciada, no podrás pausarla.')) return;
+  // 🆕 Verificar si ya existe un intento completado
+  const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+  const { data: intentoExistente } = await supabaseClient
+    .from('intentos_pruebas')
+    .select('id, estado, puntuacion')
+    .eq('prueba_id', pruebaId)
+    .eq('usuario_id', usuario.id)
+    .eq('estado', 'completado')
+    .maybeSingle();
+  
+  if (intentoExistente) {
+    await showAlert('⚠️ Prueba Ya Completada', 
+      `Ya realizaste esta prueba anteriormente.<br><br>
+       <strong>Resultado: ${intentoExistente.puntuacion.toFixed(1)}%</strong><br><br>
+       No puedes realizar la prueba más de una vez.`, 
+      'warning');
+    return;
+  }
+  
+  const confirmado = await showConfirm('Iniciar Prueba', 
+    '¿Estás seguro de iniciar esta prueba?<br><br>⚠️ Una vez iniciada, <strong>no podrás pausarla</strong>.');
+  if (!confirmado) return;
   
   const { data: prueba } = await supabaseClient.from('pruebas').select('*').eq('id', pruebaId).single();
   const { data: preguntas } = await supabaseClient.from('preguntas').select('*').eq('prueba_id', pruebaId).order('orden');
@@ -1213,7 +1265,9 @@ async function iniciarPrueba(pruebaId) {
 }
 
 async function enviarPrueba() {
-  if (!confirm('¿Enviar la prueba? No podrás cambiar tus respuestas.')) return;
+  const confirmado = await showConfirm('Enviar Prueba', 
+    '¿Estás seguro de enviar la prueba?<br><br>⚠️ <strong>No podrás cambiar tus respuestas</strong> después de enviar.');
+  if (!confirmado) return;
   
   if (intervaloTiempo) clearInterval(intervaloTiempo);
   
@@ -1271,8 +1325,23 @@ async function enviarPrueba() {
   document.getElementById('modalPruebaUsuario').style.display = 'none';
   
   const icono = pct >= 60 ? '🎉' : '😔';
+  const colorResultado = pct >= 60 ? '#28a745' : '#dc3545';
+  const bgResultado = pct >= 60 ? '#d4edda' : '#f8d7da';
   
-  alert(`${icono} ${resultado}\n\nPuntuación: ${pct.toFixed(1)}%\nRespuestas correctas: ${correctas} de ${preguntasActuales.length}`);
+  await showAlert(`${icono} Prueba ${resultado}`, `
+    <div style="text-align: center; padding: 20px;">
+      <div style="background: ${bgResultado}; border: 2px solid ${colorResultado}; border-radius: 12px; padding: 25px; margin-bottom: 15px;">
+        <p style="font-size: 48px; font-weight: 700; color: ${colorResultado}; margin: 0 0 10px;">${pct.toFixed(1)}%</p>
+        <p style="font-size: 24px; font-weight: 700; color: ${colorResultado}; margin: 0 0 15px;">${resultado}</p>
+        <p style="font-size: 14px; color: #666; margin: 0;">
+          Respuestas correctas: <strong>${correctas}</strong> de <strong>${preguntasActuales.length}</strong>
+        </p>
+      </div>
+      <p style="font-size: 13px; color: #888;">
+        ${pct >= 60 ? '✅ ¡Felicitaciones! Has aprobado la prueba.' : '❌ No alcanzaste el puntaje mínimo requerido (60%).'}
+      </p>
+    </div>
+  `, pct >= 60 ? 'success' : 'error');
   
   cargarPruebasUsuario();
 }
