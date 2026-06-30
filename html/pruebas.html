@@ -138,9 +138,17 @@ padding: 30px;
 
 /* Modal de Detalle - Casi pantalla completa */
 #modalDetalle .modal-content {
-max-width: 1400px;
-width: 98%;
-padding: 30px;
+  max-width: 1400px;
+  width: 98%;
+  padding: 30px;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* 🆕 IMPORTANTE: Permitir que el contenido del detalle fluya */
+#modalDetalle .print-area {
+  overflow: visible !important;
+  max-height: none !important;
 }
 
 /* Modal de Realizar Prueba */
@@ -185,12 +193,32 @@ cursor: not-allowed;
     visibility: visible !important; 
   }
   
-  /* 🆕 IMPORTANTE: Cambiar de absolute a relative para permitir múltiples páginas */
+  /* 🆕 CRÍTICO: Cambiar de absolute a static para permitir múltiples páginas */
   .print-area { 
-    position: relative !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
     width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+  
+  /* 🆕 Asegurar que el modal padre también permita flujo */
+  #modalDetalle {
+    position: static !important;
+    background: white !important;
+    overflow: visible !important;
+  }
+  
+  #modalDetalle .modal-content {
+    position: static !important;
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
   }
@@ -198,11 +226,13 @@ cursor: not-allowed;
   /* Ocultar botones y elementos no imprimibles */
   .no-print,
   .btn,
-  button { 
+  button,
+  #btnImprimir,
+  #btnCerrarDetalle { 
     display: none !important; 
   }
   
-  /* Configuración de página CARTA (Letter) */
+  /* 🆕 Configuración de página CARTA (Letter) */
   @page { 
     size: letter portrait;
     margin: 1.5cm 2cm;
@@ -225,18 +255,17 @@ cursor: not-allowed;
     break-inside: avoid !important;
   }
   
-  /* 🆕 Permitir saltos de página entre preguntas (no dentro de ellas) */
+  /* 🆕 Permitir saltos de página entre preguntas */
   .print-area > div[style*="border:1px solid"] {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     margin-bottom: 12px !important;
   }
   
-  /* 🆕 Forzar salto de página antes del detalle si es necesario */
+  /* 🆕 Títulos no se separan de su contenido */
   .print-area h3 {
     page-break-after: avoid !important;
     break-after: avoid !important;
-    page-break-before: auto !important;
   }
   
   /* 🆕 Mejorar tipografía para impresión */
@@ -284,9 +313,11 @@ cursor: not-allowed;
     break-inside: avoid !important;
   }
   
-  /* 🆕 Pie de página */
+  /* 🆕 Pie de página - NO se corta */
   .print-area > div[style*="border-top:2px solid"] {
     page-break-before: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
     margin-top: 20px !important;
     padding-top: 10px !important;
   }
@@ -295,6 +326,11 @@ cursor: not-allowed;
   .print-area * {
     box-shadow: none !important;
     text-shadow: none !important;
+  }
+  
+  /* 🆕 Asegurar que los iframes no interfieran */
+  iframe {
+    display: none !important;
   }
 }
 </style>
