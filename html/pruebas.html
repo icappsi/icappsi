@@ -174,28 +174,93 @@ cursor: not-allowed;
 .resultado-aprobado { color: #28a745; }
 .resultado-reprobado { color: #dc3545; }
 
-/* Estilos de impresión */
+/* Estilos de impresión - HOJA CARTA */
 @media print {
-body * { visibility: hidden; }
-.print-area, .print-area * { visibility: visible; }
-.print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
-.no-print { display: none !important; }
-@page { margin: 1.5cm; size: A4; }
-}
-
-@media (max-width: 768px) {
-.grid-2 { grid-template-columns: 1fr; }
-.modal-content { 
-  padding: 20px; 
-  width: 100%;
-  max-height: 100vh;
-  border-radius: 0;
-}
-#modalGestionPreguntas .modal-content,
-#modalDetalle .modal-content {
-  width: 100%;
-  max-width: 100%;
-}
+  /* Ocultar todo excepto el área de impresión */
+  body * { 
+    visibility: hidden; 
+  }
+  
+  .print-area, 
+  .print-area * { 
+    visibility: visible; 
+  }
+  
+  /* Configurar el área de impresión */
+  .print-area { 
+    position: absolute; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    padding: 0;
+    margin: 0;
+  }
+  
+  /* Ocultar botones y elementos no imprimibles */
+  .no-print { 
+    display: none !important; 
+  }
+  
+  /* Configuración de página CARTA (Letter) */
+  @page { 
+    size: letter portrait;
+    margin: 1.5cm 2cm;
+  }
+  
+  /* Estilos específicos para impresión */
+  body {
+    font-size: 12pt;
+    line-height: 1.4;
+    color: #000;
+    background: white;
+  }
+  
+  /* Evitar cortes en medio de preguntas */
+  .print-area > div {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Forzar salto de página antes del detalle de respuestas si es necesario */
+  .print-area h3 {
+    page-break-before: auto;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  
+  /* Asegurar que las preguntas no se corten */
+  .print-area > div > div[style*="border:1px solid"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 15px;
+  }
+  
+  /* Mejorar el espaciado para impresión */
+  .print-area h1 {
+    font-size: 18pt;
+    margin-bottom: 10pt;
+  }
+  
+  .print-area h2 {
+    font-size: 16pt;
+    margin-bottom: 8pt;
+  }
+  
+  .print-area h3 {
+    font-size: 14pt;
+    margin-bottom: 6pt;
+  }
+  
+  .print-area p {
+    font-size: 11pt;
+    margin-bottom: 4pt;
+  }
+  
+  /* Asegurar que los bordes y colores se impriman */
+  .print-area * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
 </style>
 </head>
