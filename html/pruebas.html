@@ -137,18 +137,25 @@ padding: 30px;
 }
 
 /* Modal de Detalle - Casi pantalla completa */
+#modalDetalle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 #modalDetalle .modal-content {
   max-width: 1400px;
   width: 98%;
   padding: 30px;
-  max-height: none !important;
-  overflow: visible !important;
+  max-height: 95vh;
+  overflow-y: auto;
 }
 
-/* 🆕 IMPORTANTE: Permitir que el contenido del detalle fluya */
+/* 🆕 Área de impresión dentro del modal */
 #modalDetalle .print-area {
-  overflow: visible !important;
-  max-height: none !important;
+  max-height: calc(95vh - 150px);
+  overflow-y: auto;
+  padding-right: 10px;
 }
 
 /* Modal de Realizar Prueba */
