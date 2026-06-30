@@ -247,12 +247,39 @@ cursor: not-allowed;
     display: none !important; 
   }
   
-  /* 🆕 Configuración de página CARTA (Letter) */
-  /* 🆕 Configuración de página CARTA (Letter) - MARGEN SUPERIOR REDUCIDO */
-  @page { 
-    size: letter portrait;
-    margin: 0.5cm 1.5cm 1cm 1.5cm;
-  }
+@page { 
+  size: letter portrait;
+  margin: 0.3cm 1.5cm 1cm 1.5cm;
+}
+  /* Eliminar espacio superior del contenido */
+.print-area > div:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.print-area > div:first-child img {
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+}
+
+.print-area > div:first-child h1 {
+  margin-top: 0 !important;
+  margin-bottom: 3px !important;
+}
+
+.print-area > div:first-child p {
+  margin-top: 0 !important;
+  margin-bottom: 5px !important;
+}
+
+/* Reducir márgenes de secciones siguientes */
+.print-area > div[style*="text-align:center"][style*="background:#f9f9f9"] {
+  margin-top: 10px !important;
+}
+
+.print-area > div[style*="background:#f9f9f9"][style*="border-radius:8px"] {
+  margin-top: 10px !important;
+}
   
   /* Estilos del body para impresión */
   body {
