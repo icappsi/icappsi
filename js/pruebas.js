@@ -1011,6 +1011,7 @@ async function verDetalleIntento(intentoId, pruebaId) {
 async function cargarPruebasUsuario() {
   const lista = document.getElementById('listaPruebasUsuario');
   lista.innerHTML = '<p style="text-align:center; color:#888;">Cargando pruebas...</p>';
+  
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   
   // 🆕 NUEVO: Si es administrador, NO mostrar pruebas para resolver
@@ -1042,16 +1043,16 @@ async function cargarPruebasUsuario() {
   }
   
   let pruebasFiltradas = pruebas;
-  if (usuario.nivel_acceso !== 'administrador') {
-    const { data: asignaciones } = await supabaseClient
-      .from('pruebas_usuarios')
-      .select('prueba_id')
-      .eq('usuario_id', usuario.id)
-      .eq('habilitado', true);
-    
-    const pruebasAsignadas = asignaciones.map(a => a.prueba_id);
-    pruebasFiltradas = pruebas.filter(p => pruebasAsignadas.includes(p.id));
-  }
+  
+  // Filtrar por asignaciones (solo para usuarios normales)
+  const { data: asignaciones } = await supabaseClient
+    .from('pruebas_usuarios')
+    .select('prueba_id')
+    .eq('usuario_id', usuario.id)
+    .eq('habilitado', true);
+  
+  const pruebasAsignadas = asignaciones ? asignaciones.map(a => a.prueba_id) : [];
+  pruebasFiltradas = pruebas.filter(p => pruebasAsignadas.includes(p.id));
   
   if (pruebasFiltradas.length === 0) {
     lista.innerHTML = '<p style="text-align:center; color:#888;">No tienes pruebas asignadas</p>';
@@ -1153,6 +1154,7 @@ async function iniciarPrueba(pruebaId) {
     return;
   }
   
+  // 🆕 Usar modal personalizado en lugar de confirm nativo
   const confirmado = await showConfirm('Iniciar Prueba', 
     '¿Estás seguro de iniciar esta prueba?<br><br>⚠️ Una vez iniciada, <strong>no podrás pausarla</strong>.');
   if (!confirmado) return;
@@ -1161,7 +1163,7 @@ async function iniciarPrueba(pruebaId) {
   const { data: preguntas } = await supabaseClient.from('preguntas').select('*').eq('prueba_id', pruebaId).order('orden');
   
   if (!preguntas || preguntas.length === 0) {
-    alert('Esta prueba no tiene preguntas');
+    await showAlert('Error', 'Esta prueba no tiene preguntas', 'error');
     return;
   }
   
@@ -1169,7 +1171,6 @@ async function iniciarPrueba(pruebaId) {
   preguntasActuales = preguntas;
   respuestasUsuario = {};
   
-  const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   const { data: intento } = await supabaseClient.from('intentos_pruebas')
     .insert({ prueba_id: pruebaId, usuario_id: usuario.id, estado: 'en_progreso', total_preguntas: preguntas.length })
     .select().single();
@@ -1265,6 +1266,7 @@ async function iniciarPrueba(pruebaId) {
 }
 
 async function enviarPrueba() {
+  // 🆕 Usar modal personalizado en lugar de confirm nativo
   const confirmado = await showConfirm('Enviar Prueba', 
     '¿Estás seguro de enviar la prueba?<br><br>⚠️ <strong>No podrás cambiar tus respuestas</strong> después de enviar.');
   if (!confirmado) return;
@@ -1312,18 +1314,29 @@ async function enviarPrueba() {
     })
     .eq('prueba_id', pruebaActual.id);
   
+  // 🆕 REGISTRAR LOG - SIN DUPLICAR la variable usuario
   if (typeof registrarLog === 'function') {
-    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+    const usuarioActual = JSON.parse(sessionStorage.getItem('usuario'));
     await registrarLog({
       accion: 'Completar prueba',
       modulo: 'Pruebas',
-      descripcion: `Usuario ${usuario.nombre} ${usuario.apellido} completó prueba: ${pruebaActual.titulo} - ${resultado}`,
-      detalles: { prueba_id: pruebaActual.id, prueba_titulo: pruebaActual.titulo, usuario_id: usuario.id, usuario_cedula: usuario.cedula, puntuacion: pct, respuestas_correctas: correctas, total_preguntas: preguntasActuales.length, resultado }
+      descripcion: `Usuario ${usuarioActual.nombre} ${usuarioActual.apellido} completó prueba: ${pruebaActual.titulo} - ${resultado}`,
+      detalles: { 
+        prueba_id: pruebaActual.id, 
+        prueba_titulo: pruebaActual.titulo, 
+        usuario_id: usuarioActual.id, 
+        usuario_cedula: usuarioActual.cedula, 
+        puntuacion: pct, 
+        respuestas_correctas: correctas, 
+        total_preguntas: preguntasActuales.length, 
+        resultado: resultado 
+      }
     });
   }
   
   document.getElementById('modalPruebaUsuario').style.display = 'none';
   
+  // 🆕 Usar modal personalizado para mostrar resultado
   const icono = pct >= 60 ? '🎉' : '😔';
   const colorResultado = pct >= 60 ? '#28a745' : '#dc3545';
   const bgResultado = pct >= 60 ? '#d4edda' : '#f8d7da';
