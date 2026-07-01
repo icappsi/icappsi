@@ -189,6 +189,7 @@ cursor: not-allowed;
 .resultado-reprobado { color: #dc3545; }
 
 @media print {
+  /* Ocultar todo excepto el área de impresión */
   body * { 
     visibility: hidden !important; 
   }
@@ -198,21 +199,51 @@ cursor: not-allowed;
     visibility: visible !important; 
   }
   
+  /* 🆕 CRÍTICO: Eliminar restricciones del modal al imprimir */
+  #modalDetalle {
+    position: static !important;
+    display: block !important;
+    background: white !important;
+    overflow: visible !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  #modalDetalle .modal-content {
+    position: static !important;
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+  
+  /* 🆕 CRÍTICO: El print-area debe fluir sin restricciones */
   .print-area { 
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
   }
   
   .no-print { 
     display: none !important; 
   }
   
+  /* 🆕 Configuración de página CARTA con márgenes mínimos */
   @page { 
-    margin: 0.5cm 1cm;
+    margin: 0.3cm 1cm;
     size: letter portrait;
   }
   
@@ -264,6 +295,12 @@ cursor: not-allowed;
   .print-area * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+  
+  /* 🆕 Quitar sombras que no imprimen bien */
+  .print-area * {
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 }
 </style>
