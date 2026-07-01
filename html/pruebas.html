@@ -198,9 +198,12 @@ cursor: not-allowed;
     visibility: visible !important; 
   }
   
-  /* 🆕 CRÍTICO: Eliminar restricciones del modal al imprimir */
+  /* 🆕 CRÍTICO: Posicionar absolutamente al inicio de la hoja */
   #modalDetalle {
-    position: static !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     display: block !important;
     background: white !important;
     overflow: visible !important;
@@ -208,10 +211,14 @@ cursor: not-allowed;
     height: auto !important;
     padding: 0 !important;
     margin: 0 !important;
+    transform: none !important;
   }
   
   #modalDetalle .modal-content {
-    position: static !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     display: block !important;
     max-height: none !important;
     overflow: visible !important;
@@ -219,18 +226,23 @@ cursor: not-allowed;
     width: 100% !important;
     box-shadow: none !important;
     padding: 0 !important;
+    padding-top: 0 !important;
     margin: 0 !important;
     border-radius: 0 !important;
+    transform: none !important;
   }
   
-  /* 🆕 CRÍTICO: El print-area debe fluir sin restricciones */
+  /* 🆕 CRÍTICO: El print-area debe fluir desde el borde superior */
   .print-area { 
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     width: 100% !important;
     padding: 0 !important;
+    padding-top: 0 !important;
     margin: 0 !important;
+    margin-top: 0 !important;
     overflow: visible !important;
     max-height: none !important;
     height: auto !important;
@@ -242,11 +254,16 @@ cursor: not-allowed;
   
   /* 🆕 Configuración de página CARTA con márgenes mínimos */
   @page { 
-    margin: 0.3cm 1cm;
+    margin: 0.2cm 1cm 0.5cm 1cm;
     size: letter portrait;
   }
   
-  /* Eliminar espacio superior del logo y títulos */
+  /* 🆕 Forzar al primer elemento del print-area a pegarse arriba */
+  .print-area > *:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
   .print-area > div:first-child {
     margin-top: 0 !important;
     padding-top: 0 !important;
@@ -271,18 +288,18 @@ cursor: not-allowed;
   .print-area h1,
   .print-area h2,
   .print-area h3 {
-    margin-top: 5px !important;
-    margin-bottom: 5px !important;
+    margin-top: 3px !important;
+    margin-bottom: 3px !important;
   }
   
   .print-area p {
-    margin-top: 2px !important;
-    margin-bottom: 2px !important;
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
   }
   
   .print-area > div {
-    margin-top: 8px !important;
-    margin-bottom: 8px !important;
+    margin-top: 5px !important;
+    margin-bottom: 5px !important;
   }
   
   /* Evitar cortes en preguntas */
