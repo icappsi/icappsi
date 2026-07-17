@@ -1,5 +1,5 @@
 // ============================================
-// SISTEMA DE PRUEBAS - VERSIÓN COMPLETA
+// SISTEMA DE PRUEBAS - VERSIÓN COMPLETA CORREGIDA
 // ============================================
 
 let pruebaActual = null;
@@ -231,9 +231,9 @@ function filtrarResultados(filtro) {
   
   filtrados.forEach(i => {
     // 🆕 USAR LA PUNTUACIÓN GUARDADA EN BD (BASADA EN PUNTOS) Y UMBRAL 70%
-    const pct = i.puntuacion !== null && i.puntuacion !== undefined ? parseFloat(i.puntuacion).toFixed(1) : 0;
-    const estado = pct >= 70 ? 'Aprobado' : 'Reprobado';
-    const color = pct >= 70 ? '#28a745' : '#dc3545';
+    const pct = (i.puntuacion !== null && i.puntuacion !== undefined) ? parseFloat(i.puntuacion).toFixed(1) : '0.0';
+    const estado = parseFloat(pct) >= 70 ? 'Aprobado' : 'Reprobado';
+    const color = parseFloat(pct) >= 70 ? '#28a745' : '#dc3545';
     
     const card = document.createElement('div');
     card.className = 'card';
@@ -276,6 +276,7 @@ function filtrarResultados(filtro) {
     });
   });
 }
+
 function seleccionarTodosUsuarios() {
   const checkboxes = document.querySelectorAll('.checkbox-usuario:not(:checked)');
   checkboxes.forEach(async (cb) => {
@@ -492,7 +493,7 @@ async function guardarPrueba() {
         new Date(fechaFin).toISOString() === new Date(fechaFinOriginal).toISOString();
       
       if (nuevasFechasIguales) {
-        alert('⚠️ Esta prueba está EXPIRADA.\n\nPara reactivarla, DEBES cambiar al menos una de las fechas (inicio o fin) a una fecha futura.\n\nNo puedes guardar la prueba con las mismas fechas expiradas.');
+        alert('️ Esta prueba está EXPIRADA.\n\nPara reactivarla, DEBES cambiar al menos una de las fechas (inicio o fin) a una fecha futura.\n\nNo puedes guardar la prueba con las mismas fechas expiradas.');
         return;
       }
       
@@ -883,6 +884,10 @@ async function verResultados(pruebaId) {
   filtrarResultados('');
 }
 
+// ============================================
+// 9. VER DETALLE CON IMPRESIÓN
+// ============================================
+
 async function verDetalleIntento(intentoId, pruebaId) {
   const { data: intento } = await supabaseClient
     .from('intentos_pruebas')
@@ -897,9 +902,9 @@ async function verDetalleIntento(intentoId, pruebaId) {
   const respuestas = intento.respuestas || {};
   
   // 🆕 USAR LA PUNTUACIÓN GUARDADA Y UMBRAL 70%
-  const porcentaje = intento.puntuacion !== null && intento.puntuacion !== undefined ? parseFloat(intento.puntuacion).toFixed(1) : 0;
-  const estado = porcentaje >= 70 ? 'APROBADO' : 'REPROBADO';
-  const color = porcentaje >= 70 ? '#28a745' : '#dc3545';
+  const porcentaje = (intento.puntuacion !== null && intento.puntuacion !== undefined) ? parseFloat(intento.puntuacion).toFixed(1) : '0.0';
+  const estado = parseFloat(porcentaje) >= 70 ? 'APROBADO' : 'REPROBADO';
+  const color = parseFloat(porcentaje) >= 70 ? '#28a745' : '#dc3545';
   const fechaCompletado = intento.fecha_fin ? new Date(intento.fecha_fin).toLocaleString() : '';
   
   let preguntasHTML = '';
@@ -927,7 +932,7 @@ async function verDetalleIntento(intentoId, pruebaId) {
     }
     
     const colorRespuesta = respuestaUsuarioTexto === 'Sin responder' ? '#888' : (esCorrecta ? '#28a745' : '#dc3545');
-    const icono = respuestaUsuarioTexto === 'Sin responder' ? '⚪' : (esCorrecta ? '✅' : '❌');
+    const icono = respuestaUsuarioTexto === 'Sin responder' ? '' : (esCorrecta ? '✅' : '❌');
     
     let respuestaCorrectaTexto = 'N/A';
     if (pregunta.tipo === 'verdadero_falso') {
@@ -990,7 +995,11 @@ async function verDetalleIntento(intentoId, pruebaId) {
       <p style="margin:0 0 10px; font-size:18px; color:#666;">Calificación Final</p>
       <p style="margin:0 0 10px; font-size:56px; font-weight:700; color:${color};">${porcentaje}%</p>
       <p style="margin:0; font-size:28px; font-weight:700; color:${color};">${estado}</p>
-      <p style="margin:10px 0 0; font-size:14px; color:#666;">Puntaje mínimo para aprobar: 70%</p>
+      <p style="margin:10px 0 0; font-size:14px; color:#666;">
+        Correctas: <strong>${intento.respuestas_correctas}</strong> | 
+        Incorrectas/Sin responder: <strong>${intento.total_preguntas - intento.respuestas_correctas}</strong> 
+        (Total: ${intento.total_preguntas} preguntas)
+      </p>
     </div>
     
     <h3 style="color:#4a0404; margin:0 0 15px; border-bottom:2px solid #6b0f0f; padding-bottom:10px;">Detalle de Respuestas</h3>
@@ -1074,13 +1083,13 @@ async function cargarPruebasUsuario() {
     const card = document.createElement('div');
     card.className = 'card';
     
-     if (intentoCompletado) {
+    if (intentoCompletado) {
       // 🆕 USAR LA PUNTUACIÓN GUARDADA Y UMBRAL 70%
-      const pct = intentoCompletado.puntuacion !== null && intentoCompletado.puntuacion !== undefined ? parseFloat(intentoCompletado.puntuacion).toFixed(1) : 0;
-      const estadoTxt = pct >= 70 ? 'Aprobado' : 'Reprobado';
-      const color = pct >= 70 ? '#28a745' : '#dc3545';
-      const icono = pct >= 70 ? '✅' : '❌';
-      const bgResultado = pct >= 70 ? '#d4edda' : '#f8d7da';
+      const pct = (intentoCompletado.puntuacion !== null && intentoCompletado.puntuacion !== undefined) ? parseFloat(intentoCompletado.puntuacion).toFixed(1) : '0.0';
+      const estadoTxt = parseFloat(pct) >= 70 ? 'Aprobado' : 'Reprobado';
+      const color = parseFloat(pct) >= 70 ? '#28a745' : '#dc3545';
+      const icono = parseFloat(pct) >= 70 ? '✅' : '❌';
+      const bgResultado = parseFloat(pct) >= 70 ? '#d4edda' : '#f8d7da';
       
       card.innerHTML = `
         <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
@@ -1101,7 +1110,8 @@ async function cargarPruebasUsuario() {
           <p style="margin:0 0 15px; font-size:18px; font-weight:700; color:${color};">${estadoTxt}</p>
           <div style="background:white; border-radius:8px; padding:12px; margin:15px 0;">
             <p style="margin:0; font-size:14px; color:#555;">
-              Puntaje obtenido: <strong style="color:#4a0404;">${pct}%</strong> (Mínimo requerido: 70%)
+              Correctas: <strong style="color:#4a0404;">${intentoCompletado.respuestas_correctas}</strong> | 
+              Incorrectas: <strong>${intentoCompletado.total_preguntas - intentoCompletado.respuestas_correctas}</strong>
             </p>
             <p style="margin:5px 0 0; font-size:12px; color:#888;">
               Fecha: ${new Date(intentoCompletado.fecha_fin).toLocaleString('es-VE')}
@@ -1268,6 +1278,7 @@ async function iniciarPrueba(pruebaId) {
 }
 
 async function enviarPrueba() {
+  // 🆕 Usar modal personalizado en lugar de confirm nativo
   const confirmado = await showConfirm('Enviar Prueba', 
     '¿Estás seguro de enviar la prueba?<br><br>⚠️ <strong>No podrás cambiar tus respuestas</strong> después de enviar.');
   if (!confirmado) return;
