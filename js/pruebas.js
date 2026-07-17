@@ -9,12 +9,12 @@ let tiempoRestante = 0;
 let intervaloTiempo = null;
 let paginaPreguntasActual = 1;
 const preguntasPorPagina = 10;
-
 let todosLosUsuarios = [];
 let todosLosIntentos = [];
 let pruebaIdActual = null;
+let intentoActualId = null; // 🆕 Variable para guardar el ID del intento actual
 
-// 🆕 NUEVO: Función auxiliar para verificar si una prueba está expirada
+// 🆕 Función auxiliar para verificar si una prueba está expirada
 function pruebaExpirada(prueba) {
   if (!prueba.fecha_fin) return false;
   const ahora = new Date();
@@ -50,11 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function configurarModales() {
   document.querySelectorAll('.modal-overlay').forEach(modal => {
-    // 🆕 NO cerrar al hacer clic fuera en estos modales importantes
     if (modal.id === 'modalPrueba') return;
-    if (modal.id === 'modalPregunta') return;
-    if (modal.id === 'modalPruebaUsuario') return;
-    
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.style.display = 'none';
     });
@@ -230,8 +226,8 @@ function filtrarResultados(filtro) {
   }
   
   filtrados.forEach(i => {
-    // 🆕 USAR LA PUNTUACIÓN GUARDADA EN BD (BASADA EN PUNTOS) Y UMBRAL 70%
-    const pct = (i.puntuacion !== null && i.puntuacion !== undefined) ? parseFloat(i.puntuacion).toFixed(1) : '0.0';
+    // 🆕 Usar la puntuación guardada y umbral de 70%
+    const pct = i.puntuacion !== null && i.puntuacion !== undefined ? parseFloat(i.puntuacion).toFixed(1) : '0.0';
     const estado = parseFloat(pct) >= 70 ? 'Aprobado' : 'Reprobado';
     const color = parseFloat(pct) >= 70 ? '#28a745' : '#dc3545';
     
@@ -327,11 +323,9 @@ async function cargarPruebasAdmin() {
     const card = document.createElement('div');
     card.className = 'card';
     
-    // 🆕 NUEVO: Detectar estado real de la prueba
     const estaExpirada = pruebaExpirada(prueba);
     const futura = new Date(prueba.fecha_inicio) > ahora;
     
-    // Determinar badge de estado
     let estadoBadge = '';
     let cardBorderColor = '';
     if (estaExpirada) {
@@ -341,19 +335,18 @@ async function cargarPruebasAdmin() {
       estadoBadge = '<span style="padding:4px 12px; background:#dc3545; color:white; border-radius:12px; font-size:12px; font-weight:600;">Inactiva</span>';
       cardBorderColor = 'border-left: 5px solid #dc3545;';
     } else if (futura) {
-      estadoBadge = '<span style="padding:4px 12px; background:#ffc107; color:#333; border-radius:12px; font-size:12px; font-weight:600;">📅 Programada</span>';
+      estadoBadge = '<span style="padding:4px 12px; background:#ffc107; color:#333; border-radius:12px; font-size:12px; font-weight:600;"> Programada</span>';
       cardBorderColor = 'border-left: 5px solid #ffc107;';
     } else {
       estadoBadge = '<span style="padding:4px 12px; background:#28a745; color:white; border-radius:12px; font-size:12px; font-weight:600;">✅ Activa</span>';
       cardBorderColor = 'border-left: 5px solid #28a745;';
     }
     
-    // 🆕 NUEVO: Mensaje de advertencia si está expirada
     let mensajeExpirada = '';
     if (estaExpirada) {
       mensajeExpirada = `
         <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:10px; margin-top:10px; font-size:13px; color:#856404;">
-          ⚠️ <strong>Esta prueba expiró el ${new Date(prueba.fecha_fin).toLocaleString()}</strong>. Para reactivarla, haz clic en "Editar" y cambia obligatoriamente las fechas.
+          ️ <strong>Esta prueba expiró el ${new Date(prueba.fecha_fin).toLocaleString()}</strong>. Para reactivarla, haz clic en "Editar" y cambia obligatoriamente las fechas.
         </div>
       `;
     }
@@ -378,7 +371,7 @@ async function cargarPruebasAdmin() {
         <button class="btn btn-success btn-asignar" data-id="${prueba.id}">👥 Asignar</button>
         <button class="btn btn-primary btn-resultados" data-id="${prueba.id}">📊 Resultados</button>
         <button class="btn btn-warning btn-editar-prueba" data-id="${prueba.id}" data-expirada="${estaExpirada}">✏️ Editar</button>
-        <button class="btn btn-danger btn-eliminar-prueba" data-id="${prueba.id}" data-titulo="${prueba.titulo}">🗑️ Eliminar</button>
+        <button class="btn btn-danger btn-eliminar-prueba" data-id="${prueba.id}" data-titulo="${prueba.titulo}">️ Eliminar</button>
       </div>
     `;
     lista.appendChild(card);
@@ -395,7 +388,6 @@ function abrirModalPrueba(pruebaId = null) {
   const modal = document.getElementById('modalPrueba');
   const tituloModal = document.getElementById('modalPruebaTitulo');
   
-  // 🆕 NUEVO: Limpiar mensaje de advertencia anterior
   const mensajeAnterior = modal.querySelector('.mensaje-prueba-expirada');
   if (mensajeAnterior) mensajeAnterior.remove();
   
@@ -411,18 +403,16 @@ function abrirModalPrueba(pruebaId = null) {
       document.getElementById('pruebaActiva').checked = data.activa;
       modal.dataset.editId = pruebaId;
       
-      // 🆕 NUEVO: Guardar fechas originales para comparar al guardar
       modal.dataset.fechaInicioOriginal = data.fecha_inicio;
       modal.dataset.fechaFinOriginal = data.fecha_fin;
       modal.dataset.expirada = pruebaExpirada(data) ? 'true' : 'false';
       
-      //  NUEVO: Si está expirada, mostrar advertencia y forzar cambio de fechas
       if (pruebaExpirada(data)) {
         const alerta = document.createElement('div');
         alerta.className = 'mensaje-prueba-expirada';
         alerta.style.cssText = 'background:#fff3cd; border:2px solid #ffc107; border-radius:6px; padding:12px; margin-bottom:15px; color:#856404; font-size:13px;';
         alerta.innerHTML = `
-          <strong>️ Esta prueba está EXPIRADA</strong><br>
+          <strong>⚠️ Esta prueba está EXPIRADA</strong><br>
           Para reactivarla, DEBES cambiar obligatoriamente las fechas de inicio y/o fin a fechas futuras.
         `;
         modal.querySelector('div').insertBefore(alerta, modal.querySelector('div').children[1]);
@@ -468,20 +458,17 @@ async function guardarPrueba() {
   const editId = modal.dataset.editId;
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   
-  // 🆕 NUEVO: Validaciones de fecha según si es nueva o edición
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
   const fechaInicioDate = new Date(fechaInicio);
   fechaInicioDate.setHours(0, 0, 0, 0);
   
   if (!editId) {
-    // NUEVA PRUEBA: No permitir fechas anteriores a hoy
     if (fechaInicioDate < hoy) {
       alert('⚠️ No se puede crear una prueba con fecha de inicio anterior a hoy.\n\nFecha de inicio seleccionada: ' + new Date(fechaInicio).toLocaleDateString());
       return;
     }
   } else {
-    // EDICIÓN: Si la prueba estaba expirada, obligar a cambiar las fechas
     const estabaExpirada = modal.dataset.expirada === 'true';
     
     if (estabaExpirada) {
@@ -493,11 +480,10 @@ async function guardarPrueba() {
         new Date(fechaFin).toISOString() === new Date(fechaFinOriginal).toISOString();
       
       if (nuevasFechasIguales) {
-        alert('⚠️ Esta prueba está EXPIRADA.\n\nPara reactivarla, DEBES cambiar al menos una de las fechas (inicio o fin) a una fecha futura.\n\nNo puedes guardar la prueba con las mismas fechas expiradas.');
+        alert('️ Esta prueba está EXPIRADA.\n\nPara reactivarla, DEBES cambiar al menos una de las fechas (inicio o fin) a una fecha futura.\n\nNo puedes guardar la prueba con las mismas fechas expiradas.');
         return;
       }
       
-      // Si las fechas cambiaron pero siguen siendo pasadas
       const fechaFinDate = new Date(fechaFin);
       if (fechaFinDate < new Date()) {
         alert('⚠️ La nueva fecha de fin también está en el pasado.\n\nPara reactivar la prueba, la fecha de fin debe ser futura.');
@@ -901,45 +887,10 @@ async function verDetalleIntento(intentoId, pruebaId) {
   const usuario = intento.usuarios;
   const respuestas = intento.respuestas || {};
   
-  // 🆕 Calcular puntos reales basados en las preguntas
-  let totalPuntosPosibles = 0;
-  let puntosObtenidos = 0;
-  let correctas = 0;
-  let incorrectas = 0;
-  
-  preguntas.forEach(pregunta => {
-    totalPuntosPosibles += pregunta.puntos;
-    const respuestaUsuario = respuestas[pregunta.id];
-    
-    if (respuestaUsuario !== undefined && respuestaUsuario !== null && respuestaUsuario !== '') {
-      let esCorrecta = false;
-      
-      if (pregunta.tipo === 'verdadero_falso') {
-        esCorrecta = respuestaUsuario === pregunta.respuesta_correcta;
-      } else if (pregunta.tipo === 'opcion_multiple') {
-        const idx = parseInt(respuestaUsuario);
-        if (pregunta.opciones && pregunta.opciones[idx]) {
-          esCorrecta = pregunta.opciones[idx].correcta;
-        }
-      } else if (pregunta.tipo === 'texto_libre') {
-        const evaluacion = evaluarTextoLibre(respuestaUsuario, pregunta);
-        esCorrecta = evaluacion.correcta;
-      }
-      
-      if (esCorrecta) {
-        correctas++;
-        puntosObtenidos += pregunta.puntos;
-      } else {
-        incorrectas++;
-      }
-    } else {
-      incorrectas++;
-    }
-  });
-  
-  const porcentaje = totalPuntosPosibles > 0 ? (puntosObtenidos / totalPuntosPosibles) * 100 : 0;
-  const estado = porcentaje >= 70 ? 'APROBADO' : 'REPROBADO';
-  const color = porcentaje >= 70 ? '#28a745' : '#dc3545';
+  // 🆕 Usar la puntuación guardada y umbral de 70%
+  const porcentaje = intento.puntuacion !== null && intento.puntuacion !== undefined ? parseFloat(intento.puntuacion).toFixed(1) : '0.0';
+  const estado = parseFloat(porcentaje) >= 70 ? 'APROBADO' : 'REPROBADO';
+  const color = parseFloat(porcentaje) >= 70 ? '#28a745' : '#dc3545';
   const fechaCompletado = intento.fecha_fin ? new Date(intento.fecha_fin).toLocaleString() : '';
   
   let preguntasHTML = '';
@@ -967,7 +918,7 @@ async function verDetalleIntento(intentoId, pruebaId) {
     }
     
     const colorRespuesta = respuestaUsuarioTexto === 'Sin responder' ? '#888' : (esCorrecta ? '#28a745' : '#dc3545');
-    const icono = respuestaUsuarioTexto === 'Sin responder' ? '⚪' : (esCorrecta ? '✅' : '❌');
+    const icono = respuestaUsuarioTexto === 'Sin responder' ? '' : (esCorrecta ? '✅' : '❌');
     
     let respuestaCorrectaTexto = 'N/A';
     if (pregunta.tipo === 'verdadero_falso') {
@@ -1028,12 +979,9 @@ async function verDetalleIntento(intentoId, pruebaId) {
     
     <div style="text-align:center; padding:25px; border:3px solid ${color}; border-radius:8px; margin-bottom:25px; background:${color}10;">
       <p style="margin:0 0 10px; font-size:18px; color:#666;">Calificación Final</p>
-      <p style="margin:0 0 10px; font-size:56px; font-weight:700; color:${color};">${porcentaje.toFixed(1)}%</p>
+      <p style="margin:0 0 10px; font-size:56px; font-weight:700; color:${color};">${porcentaje}%</p>
       <p style="margin:0; font-size:28px; font-weight:700; color:${color};">${estado}</p>
-      <p style="margin:10px 0 0; font-size:14px; color:#666;">
-        Puntos obtenidos: <strong>${puntosObtenidos}</strong> de <strong>${totalPuntosPosibles}</strong><br>
-        Correctas: <strong>${correctas}</strong> | Incorrectas/Sin responder: <strong>${incorrectas}</strong>
-      </p>
+      <p style="margin:10px 0 0; font-size:14px; color:#666;">Respuestas correctas: ${intento.respuestas_correctas} de ${intento.total_preguntas}</p>
     </div>
     
     <h3 style="color:#4a0404; margin:0 0 15px; border-bottom:2px solid #6b0f0f; padding-bottom:10px;">Detalle de Respuestas</h3>
@@ -1058,7 +1006,6 @@ async function cargarPruebasUsuario() {
   
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   
-  // 🆕 NUEVO: Si es administrador, NO mostrar pruebas para resolver
   if (usuario.nivel_acceso === 'administrador') {
     lista.innerHTML = `
       <div style="text-align: center; padding: 60px 20px; color: #888;">
@@ -1088,7 +1035,6 @@ async function cargarPruebasUsuario() {
   
   let pruebasFiltradas = pruebas;
   
-  // Filtrar por asignaciones (solo para usuarios normales)
   const { data: asignaciones } = await supabaseClient
     .from('pruebas_usuarios')
     .select('prueba_id')
@@ -1118,8 +1064,8 @@ async function cargarPruebasUsuario() {
     card.className = 'card';
     
     if (intentoCompletado) {
-      // 🆕 USAR LA PUNTUACIÓN GUARDADA Y UMBRAL 70%
-      const pct = (intentoCompletado.puntuacion !== null && intentoCompletado.puntuacion !== undefined) ? parseFloat(intentoCompletado.puntuacion).toFixed(1) : '0.0';
+      //  Usar la puntuación guardada y umbral de 70%
+      const pct = intentoCompletado.puntuacion !== null && intentoCompletado.puntuacion !== undefined ? parseFloat(intentoCompletado.puntuacion).toFixed(1) : '0.0';
       const estadoTxt = parseFloat(pct) >= 70 ? 'Aprobado' : 'Reprobado';
       const color = parseFloat(pct) >= 70 ? '#28a745' : '#dc3545';
       const icono = parseFloat(pct) >= 70 ? '✅' : '❌';
@@ -1181,7 +1127,7 @@ async function cargarPruebasUsuario() {
 // ============================================
 
 async function iniciarPrueba(pruebaId) {
-  //  Verificar si ya existe un intento completado
+  // 🆕 Verificar si ya existe un intento completado
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   const { data: intentoExistente } = await supabaseClient
     .from('intentos_pruebas')
@@ -1192,24 +1138,17 @@ async function iniciarPrueba(pruebaId) {
     .maybeSingle();
   
   if (intentoExistente) {
-    await showAlert('⚠️ Prueba Ya Completada', 
-      `Ya realizaste esta prueba anteriormente.<br><br>
-       <strong>Resultado: ${intentoExistente.puntuacion.toFixed(1)}%</strong><br><br>
-       No puedes realizar la prueba más de una vez.`, 
-      'warning');
+    alert('⚠️ Ya realizaste esta prueba anteriormente.\n\nResultado: ' + intentoExistente.puntuacion.toFixed(1) + '%\n\nNo puedes realizar la prueba más de una vez.');
     return;
   }
   
-  // 🆕 Usar modal personalizado en lugar de confirm nativo
-  const confirmado = await showConfirm('Iniciar Prueba', 
-    '¿Estás seguro de iniciar esta prueba?<br><br>️ Una vez iniciada, <strong>no podrás pausarla</strong>.');
-  if (!confirmado) return;
+  if (!confirm('¿Iniciar esta prueba? Una vez iniciada, no podrás pausarla.')) return;
   
   const { data: prueba } = await supabaseClient.from('pruebas').select('*').eq('id', pruebaId).single();
   const { data: preguntas } = await supabaseClient.from('preguntas').select('*').eq('prueba_id', pruebaId).order('orden');
   
   if (!preguntas || preguntas.length === 0) {
-    await showAlert('Error', 'Esta prueba no tiene preguntas', 'error');
+    alert('Esta prueba no tiene preguntas');
     return;
   }
   
@@ -1217,9 +1156,13 @@ async function iniciarPrueba(pruebaId) {
   preguntasActuales = preguntas;
   respuestasUsuario = {};
   
+  // 🆕 Crear intento y guardar su ID
   const { data: intento } = await supabaseClient.from('intentos_pruebas')
     .insert({ prueba_id: pruebaId, usuario_id: usuario.id, estado: 'en_progreso', total_preguntas: preguntas.length })
     .select().single();
+  
+  // 🆕 Guardar el ID del intento para usarlo al enviar
+  intentoActualId = intento.id;
   
   if (typeof registrarLog === 'function') {
     await registrarLog({
@@ -1326,6 +1269,7 @@ async function enviarPrueba() {
     respuestasUsuario[p.id] = resp;
     
     let esCorrecta = false;
+    
     if (p.tipo === 'verdadero_falso') {
       esCorrecta = resp === p.respuesta_correcta;
     } else if (p.tipo === 'opcion_multiple') {
@@ -1342,42 +1286,29 @@ async function enviarPrueba() {
     }
   });
   
+  //  Calcular porcentaje basado en puntos y umbral de 70%
   const pct = totalPuntos > 0 ? (puntosObtenidos / totalPuntos) * 100 : 0;
   const resultado = pct >= 70 ? 'APROBADO' : 'REPROBADO';
   
-  // 🆕 CRÍTICO: Obtener el ID del intento actual del usuario
-  const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-  const { data: intentoActual } = await supabaseClient
-    .from('intentos_pruebas')
-    .select('id')
-    .eq('prueba_id', pruebaActual.id)
-    .eq('usuario_id', usuario.id)
-    .eq('estado', 'en_progreso')
-    .single();
+  // 🆕 Actualizar SOLO el intento específico usando su ID
+  const { error } = await supabaseClient.from('intentos_pruebas')
+    .update({
+      fecha_fin: new Date().toISOString(),
+      puntuacion: pct,
+      respuestas_correctas: correctas,
+      estado: 'completado',
+      respuestas: respuestasUsuario
+    })
+    .eq('id', intentoActualId);
   
-  if (!intentoActual) {
-    alert('Error: No se encontró el intento de prueba. Por favor intenta de nuevo.');
+  if (error) {
+    console.error('Error al guardar:', error);
+    alert('Error al guardar las respuestas: ' + error.message);
     return;
   }
   
-// 🆕 Actualizar SOLO el intento específico del usuario
-const { error } = await supabaseClient.from('intentos_pruebas')
-  .update({
-    fecha_fin: new Date().toISOString(),
-    puntuacion: pct,
-    respuestas_correctas: correctas,
-    estado: 'completado',
-    respuestas: respuestasUsuario
-  })
-  .eq('id', intentoActualId);
-
-if (error) {
-  console.error('Error al guardar:', error);
-  alert('Error al guardar las respuestas: ' + error.message);
-  return;
-}
-  
   if (typeof registrarLog === 'function') {
+    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
     await registrarLog({
       accion: 'Completar prueba',
       modulo: 'Pruebas',
