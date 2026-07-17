@@ -230,9 +230,10 @@ function filtrarResultados(filtro) {
   }
   
   filtrados.forEach(i => {
-    const pct = i.total_preguntas > 0 ? ((i.respuestas_correctas / i.total_preguntas) * 100).toFixed(1) : 0;
-    const estado = i.puntuacion >= 60 ? 'Aprobado' : 'Reprobado';
-    const color = i.puntuacion >= 60 ? '#28a745' : '#dc3545';
+    // 🆕 USAR LA PUNTUACIÓN GUARDADA EN BD (BASADA EN PUNTOS) Y UMBRAL 70%
+    const pct = i.puntuacion !== null && i.puntuacion !== undefined ? parseFloat(i.puntuacion).toFixed(1) : 0;
+    const estado = pct >= 70 ? 'Aprobado' : 'Reprobado';
+    const color = pct >= 70 ? '#28a745' : '#dc3545';
     
     const card = document.createElement('div');
     card.className = 'card';
@@ -275,7 +276,6 @@ function filtrarResultados(filtro) {
     });
   });
 }
-
 function seleccionarTodosUsuarios() {
   const checkboxes = document.querySelectorAll('.checkbox-usuario:not(:checked)');
   checkboxes.forEach(async (cb) => {
@@ -883,10 +883,6 @@ async function verResultados(pruebaId) {
   filtrarResultados('');
 }
 
-// ============================================
-// 9. VER DETALLE CON IMPRESIÓN
-// ============================================
-
 async function verDetalleIntento(intentoId, pruebaId) {
   const { data: intento } = await supabaseClient
     .from('intentos_pruebas')
@@ -899,9 +895,11 @@ async function verDetalleIntento(intentoId, pruebaId) {
   
   const usuario = intento.usuarios;
   const respuestas = intento.respuestas || {};
-  const porcentaje = intento.total_preguntas > 0 ? ((intento.respuestas_correctas / intento.total_preguntas) * 100).toFixed(1) : 0;
-  const estado = intento.puntuacion >= 60 ? 'APROBADO' : 'REPROBADO';
-  const color = intento.puntuacion >= 60 ? '#28a745' : '#dc3545';
+  
+  // 🆕 USAR LA PUNTUACIÓN GUARDADA Y UMBRAL 70%
+  const porcentaje = intento.puntuacion !== null && intento.puntuacion !== undefined ? parseFloat(intento.puntuacion).toFixed(1) : 0;
+  const estado = porcentaje >= 70 ? 'APROBADO' : 'REPROBADO';
+  const color = porcentaje >= 70 ? '#28a745' : '#dc3545';
   const fechaCompletado = intento.fecha_fin ? new Date(intento.fecha_fin).toLocaleString() : '';
   
   let preguntasHTML = '';
@@ -992,7 +990,7 @@ async function verDetalleIntento(intentoId, pruebaId) {
       <p style="margin:0 0 10px; font-size:18px; color:#666;">Calificación Final</p>
       <p style="margin:0 0 10px; font-size:56px; font-weight:700; color:${color};">${porcentaje}%</p>
       <p style="margin:0; font-size:28px; font-weight:700; color:${color};">${estado}</p>
-      <p style="margin:10px 0 0; font-size:14px; color:#666;">Respuestas correctas: ${intento.respuestas_correctas} de ${intento.total_preguntas}</p>
+      <p style="margin:10px 0 0; font-size:14px; color:#666;">Puntaje mínimo para aprobar: 70%</p>
     </div>
     
     <h3 style="color:#4a0404; margin:0 0 15px; border-bottom:2px solid #6b0f0f; padding-bottom:10px;">Detalle de Respuestas</h3>
@@ -1076,12 +1074,13 @@ async function cargarPruebasUsuario() {
     const card = document.createElement('div');
     card.className = 'card';
     
-    if (intentoCompletado) {
-      const pct = intentoCompletado.total_preguntas > 0 ? ((intentoCompletado.respuestas_correctas / intentoCompletado.total_preguntas) * 100).toFixed(1) : 0;
-      const estadoTxt = intentoCompletado.puntuacion >= 60 ? 'Aprobado' : 'Reprobado';
-      const color = intentoCompletado.puntuacion >= 60 ? '#28a745' : '#dc3545';
-      const icono = intentoCompletado.puntuacion >= 60 ? '✅' : '❌';
-      const bgResultado = intentoCompletado.puntuacion >= 60 ? '#d4edda' : '#f8d7da';
+     if (intentoCompletado) {
+      // 🆕 USAR LA PUNTUACIÓN GUARDADA Y UMBRAL 70%
+      const pct = intentoCompletado.puntuacion !== null && intentoCompletado.puntuacion !== undefined ? parseFloat(intentoCompletado.puntuacion).toFixed(1) : 0;
+      const estadoTxt = pct >= 70 ? 'Aprobado' : 'Reprobado';
+      const color = pct >= 70 ? '#28a745' : '#dc3545';
+      const icono = pct >= 70 ? '✅' : '❌';
+      const bgResultado = pct >= 70 ? '#d4edda' : '#f8d7da';
       
       card.innerHTML = `
         <div style="display:flex; align-items:center; gap:15px; margin-bottom:15px;">
@@ -1102,7 +1101,7 @@ async function cargarPruebasUsuario() {
           <p style="margin:0 0 15px; font-size:18px; font-weight:700; color:${color};">${estadoTxt}</p>
           <div style="background:white; border-radius:8px; padding:12px; margin:15px 0;">
             <p style="margin:0; font-size:14px; color:#555;">
-              Respuestas correctas: <strong style="color:#4a0404;">${intentoCompletado.respuestas_correctas}</strong> de <strong>${intentoCompletado.total_preguntas}</strong>
+              Puntaje obtenido: <strong style="color:#4a0404;">${pct}%</strong> (Mínimo requerido: 70%)
             </p>
             <p style="margin:5px 0 0; font-size:12px; color:#888;">
               Fecha: ${new Date(intentoCompletado.fecha_fin).toLocaleString('es-VE')}
@@ -1269,7 +1268,6 @@ async function iniciarPrueba(pruebaId) {
 }
 
 async function enviarPrueba() {
-  // 🆕 Usar modal personalizado en lugar de confirm nativo
   const confirmado = await showConfirm('Enviar Prueba', 
     '¿Estás seguro de enviar la prueba?<br><br>⚠️ <strong>No podrás cambiar tus respuestas</strong> después de enviar.');
   if (!confirmado) return;
@@ -1304,20 +1302,20 @@ async function enviarPrueba() {
     }
   });
   
+  // 🆕 CÁLCULO REAL BASADO EN PUNTOS Y UMBRAL DE 70%
   const pct = totalPuntos > 0 ? (puntosObtenidos / totalPuntos) * 100 : 0;
-  const resultado = pct >= 60 ? 'APROBADO' : 'REPROBADO';
+  const resultado = pct >= 70 ? 'APROBADO' : 'REPROBADO';
   
   await supabaseClient.from('intentos_pruebas')
     .update({
       fecha_fin: new Date().toISOString(),
-      puntuacion: pct,
+      puntuacion: pct, // Se guarda el porcentaje real basado en puntos
       respuestas_correctas: correctas,
       estado: 'completado',
       respuestas: respuestasUsuario
     })
     .eq('prueba_id', pruebaActual.id);
   
-  // 🆕 REGISTRAR LOG - SIN DUPLICAR la variable usuario
   if (typeof registrarLog === 'function') {
     const usuarioActual = JSON.parse(sessionStorage.getItem('usuario'));
     await registrarLog({
@@ -1339,10 +1337,9 @@ async function enviarPrueba() {
   
   document.getElementById('modalPruebaUsuario').style.display = 'none';
   
-  // 🆕 Usar modal personalizado para mostrar resultado
-  const icono = pct >= 60 ? '🎉' : '😔';
-  const colorResultado = pct >= 60 ? '#28a745' : '#dc3545';
-  const bgResultado = pct >= 60 ? '#d4edda' : '#f8d7da';
+  const icono = pct >= 70 ? '🎉' : '😔';
+  const colorResultado = pct >= 70 ? '#28a745' : '#dc3545';
+  const bgResultado = pct >= 70 ? '#d4edda' : '#f8d7da';
   
   await showAlert(`${icono} Prueba ${resultado}`, `
     <div style="text-align: center; padding: 20px;">
@@ -1350,14 +1347,14 @@ async function enviarPrueba() {
         <p style="font-size: 48px; font-weight: 700; color: ${colorResultado}; margin: 0 0 10px;">${pct.toFixed(1)}%</p>
         <p style="font-size: 24px; font-weight: 700; color: ${colorResultado}; margin: 0 0 15px;">${resultado}</p>
         <p style="font-size: 14px; color: #666; margin: 0;">
-          Respuestas correctas: <strong>${correctas}</strong> de <strong>${preguntasActuales.length}</strong>
+          Puntos obtenidos: <strong>${puntosObtenidos}</strong> de <strong>${totalPuntos}</strong>
         </p>
       </div>
       <p style="font-size: 13px; color: #888;">
-        ${pct >= 60 ? '✅ ¡Felicitaciones! Has aprobado la prueba.' : '❌ No alcanzaste el puntaje mínimo requerido (60%).'}
+        ${pct >= 70 ? '✅ ¡Felicitaciones! Has aprobado la prueba (Mínimo 70%).' : '❌ No alcanzaste el puntaje mínimo requerido (70%).'}
       </p>
     </div>
-  `, pct >= 60 ? 'success' : 'error');
+  `, pct >= 70 ? 'success' : 'error');
   
   cargarPruebasUsuario();
 }
