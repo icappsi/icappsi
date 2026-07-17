@@ -1360,23 +1360,22 @@ async function enviarPrueba() {
     return;
   }
   
-  // 🆕 CRÍTICO: Actualizar SOLO este intento específico usando su ID
-  const { error } = await supabaseClient
-    .from('intentos_pruebas')
-    .update({
-      fecha_fin: new Date().toISOString(),
-      puntuacion: pct,
-      respuestas_correctas: correctas,
-      estado: 'completado',
-      respuestas: respuestasUsuario
-    })
-    .eq('id', intentoActual.id); //  Usar el ID del intento, no el prueba_id
-  
-  if (error) {
-    console.error('Error al guardar:', error);
-    alert('Error al guardar las respuestas: ' + error.message);
-    return;
-  }
+// 🆕 Actualizar SOLO el intento específico del usuario
+const { error } = await supabaseClient.from('intentos_pruebas')
+  .update({
+    fecha_fin: new Date().toISOString(),
+    puntuacion: pct,
+    respuestas_correctas: correctas,
+    estado: 'completado',
+    respuestas: respuestasUsuario
+  })
+  .eq('id', intentoActualId);
+
+if (error) {
+  console.error('Error al guardar:', error);
+  alert('Error al guardar las respuestas: ' + error.message);
+  return;
+}
   
   if (typeof registrarLog === 'function') {
     await registrarLog({
