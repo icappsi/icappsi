@@ -416,13 +416,13 @@ function abrirModalPrueba(pruebaId = null) {
       modal.dataset.fechaFinOriginal = data.fecha_fin;
       modal.dataset.expirada = pruebaExpirada(data) ? 'true' : 'false';
       
-      // 🆕 NUEVO: Si está expirada, mostrar advertencia y forzar cambio de fechas
+      //  NUEVO: Si está expirada, mostrar advertencia y forzar cambio de fechas
       if (pruebaExpirada(data)) {
         const alerta = document.createElement('div');
         alerta.className = 'mensaje-prueba-expirada';
         alerta.style.cssText = 'background:#fff3cd; border:2px solid #ffc107; border-radius:6px; padding:12px; margin-bottom:15px; color:#856404; font-size:13px;';
         alerta.innerHTML = `
-          <strong>⚠️ Esta prueba está EXPIRADA</strong><br>
+          <strong>️ Esta prueba está EXPIRADA</strong><br>
           Para reactivarla, DEBES cambiar obligatoriamente las fechas de inicio y/o fin a fechas futuras.
         `;
         modal.querySelector('div').insertBefore(alerta, modal.querySelector('div').children[1]);
@@ -493,7 +493,7 @@ async function guardarPrueba() {
         new Date(fechaFin).toISOString() === new Date(fechaFinOriginal).toISOString();
       
       if (nuevasFechasIguales) {
-        alert('️ Esta prueba está EXPIRADA.\n\nPara reactivarla, DEBES cambiar al menos una de las fechas (inicio o fin) a una fecha futura.\n\nNo puedes guardar la prueba con las mismas fechas expiradas.');
+        alert('⚠️ Esta prueba está EXPIRADA.\n\nPara reactivarla, DEBES cambiar al menos una de las fechas (inicio o fin) a una fecha futura.\n\nNo puedes guardar la prueba con las mismas fechas expiradas.');
         return;
       }
       
@@ -932,7 +932,7 @@ async function verDetalleIntento(intentoId, pruebaId) {
     }
     
     const colorRespuesta = respuestaUsuarioTexto === 'Sin responder' ? '#888' : (esCorrecta ? '#28a745' : '#dc3545');
-    const icono = respuestaUsuarioTexto === 'Sin responder' ? '' : (esCorrecta ? '✅' : '❌');
+    const icono = respuestaUsuarioTexto === 'Sin responder' ? '⚪' : (esCorrecta ? '✅' : '❌');
     
     let respuestaCorrectaTexto = 'N/A';
     if (pregunta.tipo === 'verdadero_falso') {
@@ -1147,7 +1147,7 @@ async function cargarPruebasUsuario() {
 // ============================================
 
 async function iniciarPrueba(pruebaId) {
-  // 🆕 Verificar si ya existe un intento completado
+  //  Verificar si ya existe un intento completado
   const usuario = JSON.parse(sessionStorage.getItem('usuario'));
   const { data: intentoExistente } = await supabaseClient
     .from('intentos_pruebas')
@@ -1168,7 +1168,7 @@ async function iniciarPrueba(pruebaId) {
   
   // 🆕 Usar modal personalizado en lugar de confirm nativo
   const confirmado = await showConfirm('Iniciar Prueba', 
-    '¿Estás seguro de iniciar esta prueba?<br><br>⚠️ Una vez iniciada, <strong>no podrás pausarla</strong>.');
+    '¿Estás seguro de iniciar esta prueba?<br><br>️ Una vez iniciada, <strong>no podrás pausarla</strong>.');
   if (!confirmado) return;
   
   const { data: prueba } = await supabaseClient.from('pruebas').select('*').eq('id', pruebaId).single();
@@ -1313,7 +1313,7 @@ async function enviarPrueba() {
     }
   });
   
-  // 🆕 CÁLCULO REAL BASADO EN PUNTOS Y UMBRAL DE 70%
+  //  CÁLCULO REAL BASADO EN PUNTOS Y UMBRAL DE 70%
   const pct = totalPuntos > 0 ? (puntosObtenidos / totalPuntos) * 100 : 0;
   const resultado = pct >= 70 ? 'APROBADO' : 'REPROBADO';
   
