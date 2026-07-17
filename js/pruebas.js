@@ -901,10 +901,45 @@ async function verDetalleIntento(intentoId, pruebaId) {
   const usuario = intento.usuarios;
   const respuestas = intento.respuestas || {};
   
-  // 🆕 USAR LA PUNTUACIÓN GUARDADA Y UMBRAL 70%
-  const porcentaje = (intento.puntuacion !== null && intento.puntuacion !== undefined) ? parseFloat(intento.puntuacion).toFixed(1) : '0.0';
-  const estado = parseFloat(porcentaje) >= 70 ? 'APROBADO' : 'REPROBADO';
-  const color = parseFloat(porcentaje) >= 70 ? '#28a745' : '#dc3545';
+  // 🆕 Calcular puntos reales basados en las preguntas
+  let totalPuntosPosibles = 0;
+  let puntosObtenidos = 0;
+  let correctas = 0;
+  let incorrectas = 0;
+  
+  preguntas.forEach(pregunta => {
+    totalPuntosPosibles += pregunta.puntos;
+    const respuestaUsuario = respuestas[pregunta.id];
+    
+    if (respuestaUsuario !== undefined && respuestaUsuario !== null && respuestaUsuario !== '') {
+      let esCorrecta = false;
+      
+      if (pregunta.tipo === 'verdadero_falso') {
+        esCorrecta = respuestaUsuario === pregunta.respuesta_correcta;
+      } else if (pregunta.tipo === 'opcion_multiple') {
+        const idx = parseInt(respuestaUsuario);
+        if (pregunta.opciones && pregunta.opciones[idx]) {
+          esCorrecta = pregunta.opciones[idx].correcta;
+        }
+      } else if (pregunta.tipo === 'texto_libre') {
+        const evaluacion = evaluarTextoLibre(respuestaUsuario, pregunta);
+        esCorrecta = evaluacion.correcta;
+      }
+      
+      if (esCorrecta) {
+        correctas++;
+        puntosObtenidos += pregunta.puntos;
+      } else {
+        incorrectas++;
+      }
+    } else {
+      incorrectas++;
+    }
+  });
+  
+  const porcentaje = totalPuntosPosibles > 0 ? (puntosObtenidos / totalPuntosPosibles) * 100 : 0;
+  const estado = porcentaje >= 70 ? 'APROBADO' : 'REPROBADO';
+  const color = porcentaje >= 70 ? '#28a745' : '#dc3545';
   const fechaCompletado = intento.fecha_fin ? new Date(intento.fecha_fin).toLocaleString() : '';
   
   let preguntasHTML = '';
@@ -993,12 +1028,11 @@ async function verDetalleIntento(intentoId, pruebaId) {
     
     <div style="text-align:center; padding:25px; border:3px solid ${color}; border-radius:8px; margin-bottom:25px; background:${color}10;">
       <p style="margin:0 0 10px; font-size:18px; color:#666;">Calificación Final</p>
-      <p style="margin:0 0 10px; font-size:56px; font-weight:700; color:${color};">${porcentaje}%</p>
+      <p style="margin:0 0 10px; font-size:56px; font-weight:700; color:${color};">${porcentaje.toFixed(1)}%</p>
       <p style="margin:0; font-size:28px; font-weight:700; color:${color};">${estado}</p>
       <p style="margin:10px 0 0; font-size:14px; color:#666;">
-        Correctas: <strong>${intento.respuestas_correctas}</strong> | 
-        Incorrectas/Sin responder: <strong>${intento.total_preguntas - intento.respuestas_correctas}</strong> 
-        (Total: ${intento.total_preguntas} preguntas)
+        Puntos obtenidos: <strong>${puntosObtenidos}</strong> de <strong>${totalPuntosPosibles}</strong><br>
+        Correctas: <strong>${correctas}</strong> | Incorrectas/Sin responder: <strong>${incorrectas}</strong>
       </p>
     </div>
     
@@ -1278,11 +1312,7 @@ async function iniciarPrueba(pruebaId) {
 }
 
 async function enviarPrueba() {
-  // 🆕 Usar modal personalizado en lugar de confirm nativo
-  const confirmado = await showConfirm('Enviar Prueba', 
-    '¿Estás seguro de enviar la prueba?<br><br>⚠️ <strong>No podrás cambiar tus respuestas</strong> después de enviar.');
-  if (!confirmado) return;
-  
+  if (!confirm('¿Enviar la prueba? No podrás cambiar tus respuestas.')) return;
   if (intervaloTiempo) clearInterval(intervaloTiempo);
   
   let correctas = 0;
@@ -1296,7 +1326,6 @@ async function enviarPrueba() {
     respuestasUsuario[p.id] = resp;
     
     let esCorrecta = false;
-    
     if (p.tipo === 'verdadero_falso') {
       esCorrecta = resp === p.respuesta_correcta;
     } else if (p.tipo === 'opcion_multiple') {
@@ -1313,31 +1342,52 @@ async function enviarPrueba() {
     }
   });
   
-  //  CÁLCULO REAL BASADO EN PUNTOS Y UMBRAL DE 70%
   const pct = totalPuntos > 0 ? (puntosObtenidos / totalPuntos) * 100 : 0;
   const resultado = pct >= 70 ? 'APROBADO' : 'REPROBADO';
   
-  await supabaseClient.from('intentos_pruebas')
+  // 🆕 CRÍTICO: Obtener el ID del intento actual del usuario
+  const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+  const { data: intentoActual } = await supabaseClient
+    .from('intentos_pruebas')
+    .select('id')
+    .eq('prueba_id', pruebaActual.id)
+    .eq('usuario_id', usuario.id)
+    .eq('estado', 'en_progreso')
+    .single();
+  
+  if (!intentoActual) {
+    alert('Error: No se encontró el intento de prueba. Por favor intenta de nuevo.');
+    return;
+  }
+  
+  // 🆕 CRÍTICO: Actualizar SOLO este intento específico usando su ID
+  const { error } = await supabaseClient
+    .from('intentos_pruebas')
     .update({
       fecha_fin: new Date().toISOString(),
-      puntuacion: pct, // Se guarda el porcentaje real basado en puntos
+      puntuacion: pct,
       respuestas_correctas: correctas,
       estado: 'completado',
       respuestas: respuestasUsuario
     })
-    .eq('prueba_id', pruebaActual.id);
+    .eq('id', intentoActual.id); //  Usar el ID del intento, no el prueba_id
+  
+  if (error) {
+    console.error('Error al guardar:', error);
+    alert('Error al guardar las respuestas: ' + error.message);
+    return;
+  }
   
   if (typeof registrarLog === 'function') {
-    const usuarioActual = JSON.parse(sessionStorage.getItem('usuario'));
     await registrarLog({
       accion: 'Completar prueba',
       modulo: 'Pruebas',
-      descripcion: `Usuario ${usuarioActual.nombre} ${usuarioActual.apellido} completó prueba: ${pruebaActual.titulo} - ${resultado}`,
+      descripcion: `Usuario ${usuario.nombre} ${usuario.apellido} completó prueba: ${pruebaActual.titulo} - ${resultado}`,
       detalles: { 
         prueba_id: pruebaActual.id, 
         prueba_titulo: pruebaActual.titulo, 
-        usuario_id: usuarioActual.id, 
-        usuario_cedula: usuarioActual.cedula, 
+        usuario_id: usuario.id, 
+        usuario_cedula: usuario.cedula, 
         puntuacion: pct, 
         respuestas_correctas: correctas, 
         total_preguntas: preguntasActuales.length, 
@@ -1349,23 +1399,7 @@ async function enviarPrueba() {
   document.getElementById('modalPruebaUsuario').style.display = 'none';
   
   const icono = pct >= 70 ? '🎉' : '😔';
-  const colorResultado = pct >= 70 ? '#28a745' : '#dc3545';
-  const bgResultado = pct >= 70 ? '#d4edda' : '#f8d7da';
-  
-  await showAlert(`${icono} Prueba ${resultado}`, `
-    <div style="text-align: center; padding: 20px;">
-      <div style="background: ${bgResultado}; border: 2px solid ${colorResultado}; border-radius: 12px; padding: 25px; margin-bottom: 15px;">
-        <p style="font-size: 48px; font-weight: 700; color: ${colorResultado}; margin: 0 0 10px;">${pct.toFixed(1)}%</p>
-        <p style="font-size: 24px; font-weight: 700; color: ${colorResultado}; margin: 0 0 15px;">${resultado}</p>
-        <p style="font-size: 14px; color: #666; margin: 0;">
-          Puntos obtenidos: <strong>${puntosObtenidos}</strong> de <strong>${totalPuntos}</strong>
-        </p>
-      </div>
-      <p style="font-size: 13px; color: #888;">
-        ${pct >= 70 ? '✅ ¡Felicitaciones! Has aprobado la prueba (Mínimo 70%).' : '❌ No alcanzaste el puntaje mínimo requerido (70%).'}
-      </p>
-    </div>
-  `, pct >= 70 ? 'success' : 'error');
+  alert(`${icono} ${resultado}\n\nPuntuación: ${pct.toFixed(1)}%\nRespuestas correctas: ${correctas} de ${preguntasActuales.length}\nPuntos obtenidos: ${puntosObtenidos} de ${totalPuntos}`);
   
   cargarPruebasUsuario();
 }
